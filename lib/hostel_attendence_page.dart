@@ -1,0 +1,2472 @@
+import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:student_app/studentdrawer.dart';
+import 'package:student_app/theme_controller.dart';
+import 'package:student_app/hostel_month_detail_page.dart';
+import 'dart:math' as math;
+
+class HostelAttendancePage extends StatefulWidget {
+  const HostelAttendancePage({super.key});
+
+  @override
+  State<HostelAttendancePage> createState() => _HostelAttendancePageState();
+}
+
+class _HostelAttendancePageState extends State<HostelAttendancePage> {
+  String selectedPeriod = "All Months";
+  int currentPage = 1;
+  final int itemsPerPage = 10;
+  final ScrollController _horizontalScrollController = ScrollController();
+  double _scrollPosition = 0.0;
+  double _maxScrollExtent = 0.0;
+
+  final double overallAttendance = 83.9;
+  final int nightsInHostel = 47;
+  final int totalNights = 56;
+  final int nightsAbsent = 0;
+  final int currentStreak = 5;
+  final int bestStreak = 19;
+  final int leavesTaken = 0;
+  final int nightOuts = 0;
+
+  // Hostel details
+  final String hostelName = "ADARSA";
+  final String floor = "2ND FLOOR A&B BLOCKS";
+  final String room = "B-204";
+  final String warden = "JENNIPOGU ABHI RAM";
+
+  final List<Map<String, dynamic>> monthlyData = [
+    {
+      'month': 'Jun 25',
+      'attended': 0,
+      'total': 0,
+      'present': 0,
+      'absent': 0,
+      'leaves': 0,
+      'holidays': 0,
+      'nightOuts': 0,
+      'percentage': 0.0,
+      'status': 'Poor',
+    },
+    {
+      'month': 'Jul 25',
+      'attended': 0,
+      'total': 0,
+      'present': 0,
+      'absent': 0,
+      'leaves': 0,
+      'holidays': 0,
+      'nightOuts': 0,
+      'percentage': 0.0,
+      'status': 'Poor',
+    },
+    {
+      'month': 'Aug 25',
+      'attended': 1,
+      'total': 1,
+      'present': 1,
+      'absent': 0,
+      'leaves': 0,
+      'holidays': 0,
+      'nightOuts': 0,
+      'percentage': 100.0,
+      'status': 'Excellent',
+    },
+    {
+      'month': 'Sep 25',
+      'attended': 16,
+      'total': 19,
+      'present': 16,
+      'absent': 0,
+      'leaves': 1,
+      'holidays': 0,
+      'nightOuts': 0,
+      'percentage': 84.2,
+      'status': 'Average',
+    },
+    {
+      'month': 'Oct 25',
+      'attended': 19,
+      'total': 23,
+      'present': 19,
+      'absent': 0,
+      'leaves': 0,
+      'holidays': 0,
+      'nightOuts': 0,
+      'percentage': 82.6,
+      'status': 'Average',
+    },
+    {
+      'month': 'Nov 25',
+      'attended': 11,
+      'total': 13,
+      'present': 11,
+      'absent': 0,
+      'leaves': 0,
+      'holidays': 0,
+      'nightOuts': 0,
+      'percentage': 84.6,
+      'status': 'Average',
+    },
+    {
+      'month': 'Dec 25',
+      'attended': 0,
+      'total': 0,
+      'present': 0,
+      'absent': 0,
+      'leaves': 0,
+      'holidays': 0,
+      'nightOuts': 0,
+      'percentage': 0.0,
+      'status': 'Poor',
+    },
+    {
+      'month': 'Jan 26',
+      'attended': 0,
+      'total': 0,
+      'present': 0,
+      'absent': 0,
+      'leaves': 0,
+      'holidays': 0,
+      'nightOuts': 0,
+      'percentage': 0.0,
+      'status': 'Poor',
+    },
+    {
+      'month': 'Feb 26',
+      'attended': 0,
+      'total': 0,
+      'present': 0,
+      'absent': 0,
+      'leaves': 0,
+      'holidays': 0,
+      'nightOuts': 0,
+      'percentage': 0.0,
+      'status': 'Poor',
+    },
+    {
+      'month': 'Mar 26',
+      'attended': 0,
+      'total': 0,
+      'present': 0,
+      'absent': 0,
+      'leaves': 0,
+      'holidays': 0,
+      'nightOuts': 0,
+      'percentage': 0.0,
+      'status': 'Poor',
+    },
+    {
+      'month': 'Apr 26',
+      'attended': 0,
+      'total': 0,
+      'present': 0,
+      'absent': 0,
+      'leaves': 0,
+      'holidays': 0,
+      'nightOuts': 0,
+      'percentage': 0.0,
+      'status': 'Poor',
+    },
+  ];
+
+  final List<double> trendData = [100.0, 84.2, 82.6, 84.6];
+
+  @override
+  void initState() {
+    super.initState();
+    _horizontalScrollController.addListener(_updateScrollPosition);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateScrollPosition();
+    });
+  }
+
+  void _updateScrollPosition() {
+    if (_horizontalScrollController.hasClients) {
+      setState(() {
+        _scrollPosition = _horizontalScrollController.position.pixels;
+        _maxScrollExtent = _horizontalScrollController.position.maxScrollExtent;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _horizontalScrollController.removeListener(_updateScrollPosition);
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(
+              Icons.menu,
+              color: Theme.of(context).appBarTheme.foregroundColor,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StudentDrawerPage()),
+              );
+            },
+          ),
+        ),
+        actions: [
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: ThemeController.themeMode,
+            builder: (context, themeMode, _) {
+              final isDark = themeMode == ThemeMode.dark;
+              return Container(
+                margin: const EdgeInsets.only(right: 8),
+                child: Material(
+                  color: isDark
+                      ? const Color(0xFF6366F1) // Light purple for dark mode
+                      : const Color(0xFFEFEFEF), // Light gray for light mode
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    onTap: () {
+                      ThemeController.toggleTheme();
+                    },
+                    customBorder: const CircleBorder(),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      child: Icon(
+                        isDark
+                            ? Icons.light_mode_outlined
+                            : Icons.dark_mode_outlined,
+                        color: isDark
+                            ? Colors.white
+                            : const Color(
+                                0xFF333333,
+                              ), // Dark gray for moon icon
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+
+          const Padding(
+            padding: EdgeInsets.only(right: 16),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundImage: NetworkImage("https://i.pravatar.cc/150"),
+            ),
+          ),
+        ],
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 600;
+          final padding = isMobile ? 12.0 : 16.0;
+
+          return SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.all(padding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Hostel Attendance Dashboard Header Card
+                  _buildDashboardHeader(isMobile),
+                  SizedBox(height: isMobile ? 12 : 16),
+
+                  // Hostel Details Card
+                  _buildHostelDetailsCard(isMobile),
+                  SizedBox(height: isMobile ? 12 : 16),
+
+                  // Overall Attendance Card
+                  _buildOverallAttendanceCard(isMobile),
+                  SizedBox(height: isMobile ? 12 : 16),
+
+                  // Nights in Hostel Card
+                  _buildNightsInHostelCard(isMobile),
+                  SizedBox(height: isMobile ? 12 : 16),
+
+                  // Current Stay Streak Card
+                  _buildCurrentStayStreakCard(isMobile),
+                  SizedBox(height: isMobile ? 12 : 16),
+
+                  // Leaves Taken Card
+                  _buildLeavesTakenCard(isMobile),
+                  SizedBox(height: isMobile ? 12 : 16),
+
+                  // Hostel Attendance Trend Card
+                  _buildAttendanceTrendCard(isMobile),
+                  SizedBox(height: isMobile ? 12 : 16),
+
+                  // Performance Summary Card
+                  _buildPerformanceSummaryCard(isMobile),
+                  SizedBox(height: isMobile ? 12 : 16),
+
+                  // Monthly Hostel Attendance Overview Card
+                  _buildMonthlyOverviewCard(isMobile),
+                  SizedBox(height: isMobile ? 12 : 16),
+
+                  // Recent Activity Card
+                  _buildRecentActivityCard(isMobile),
+                  SizedBox(height: isMobile ? 12 : 16),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDashboardHeader(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: isMobile ? 40 : 48,
+                height: isMobile ? 40 : 48,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF7C3AED), Color(0xFF2563EB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.home,
+                  color: Colors.white,
+                  size: isMobile ? 24 : 28,
+                ),
+              ),
+              SizedBox(width: isMobile ? 12 : 16),
+              Expanded(
+                child: Text(
+                  'Hostel Attendance Dashboard',
+                  style: TextStyle(
+                    fontSize: isMobile ? 22 : 28,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF7C3AED),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isMobile ? 8 : 12),
+          Text(
+            'Track and analyze your hostel stay attendance',
+            style: TextStyle(
+              fontSize: isMobile ? 12 : 14,
+              color: const Color(0xFF64748B),
+              height: 1.5,
+            ),
+          ),
+          SizedBox(height: isMobile ? 16 : 20),
+          isMobile
+              ? Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {},
+                        icon: const Icon(Icons.download, size: 18),
+                        label: const Text(
+                          'Refresh Data',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7C3AED),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {},
+                        icon: const Icon(
+                          Icons.print,
+                          size: 18,
+                          color: Colors.black87,
+                        ),
+                        label: const Text(
+                          'Print Report',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {},
+                        icon: const Icon(Icons.download, size: 18),
+                        label: const Text(
+                          'Refresh Data',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7C3AED),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {},
+                        icon: const Icon(
+                          Icons.print,
+                          size: 18,
+                          color: Colors.black87,
+                        ),
+                        label: const Text(
+                          'Print Report',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHostelDetailsCard(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE0F2FE),
+        borderRadius: BorderRadius.circular(16.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHostelDetailRow(
+            Icons.business,
+            const Color(0xFF2563EB),
+            'Hostel',
+            hostelName,
+            isMobile,
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          _buildHostelDetailRow(
+            Icons.check_circle,
+            const Color(0xFF10B981),
+            'Floor',
+            floor,
+            isMobile,
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          _buildHostelDetailRow(
+            Icons.home,
+            const Color(0xFF7C3AED),
+            'Room',
+            room,
+            isMobile,
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          _buildHostelDetailRow(
+            Icons.person,
+            const Color(0xFFF97316),
+            'Warden',
+            warden,
+            isMobile,
+            isLast: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHostelDetailRow(
+    IconData icon,
+    Color iconColor,
+    String label,
+    String value,
+    bool isMobile, {
+    bool isLast = false,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: isMobile ? 36 : 40,
+          height: isMobile ? 36 : 40,
+          decoration: BoxDecoration(
+            color: iconColor,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: Colors.white, size: isMobile ? 20 : 24),
+        ),
+        SizedBox(width: isMobile ? 12 : 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: isMobile ? 11 : 12,
+                  color: const Color(0xFF64748B),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: isMobile ? 2 : 4),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: isMobile ? 14 : 16,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1E293B),
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOverallAttendanceCard(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Overall Attendance',
+            style: TextStyle(
+              fontSize: isMobile ? 12 : 14,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: EdgeInsets.all(isMobile ? 8 : 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '%',
+                  style: TextStyle(
+                    fontSize: isMobile ? 24 : 32,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              SizedBox(width: isMobile ? 8 : 12),
+              Flexible(
+                child: Text(
+                  '$overallAttendance',
+                  style: TextStyle(
+                    fontSize: isMobile ? 36 : 48,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF10B981),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 10 : 12,
+              vertical: isMobile ? 6 : 8,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD1FAE5),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.check_circle,
+                  size: isMobile ? 14 : 16,
+                  color: const Color(0xFF10B981),
+                ),
+                SizedBox(width: isMobile ? 4 : 6),
+                Flexible(
+                  child: Text(
+                    'Based on $totalNights recorded nights',
+                    style: TextStyle(
+                      fontSize: isMobile ? 11 : 12,
+                      color: const Color(0xFF059669),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNightsInHostelCard(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: isMobile ? 36 : 40,
+                height: isMobile ? 36 : 40,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF2563EB),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_circle,
+                  color: Colors.white,
+                  size: isMobile ? 20 : 24,
+                ),
+              ),
+              SizedBox(width: isMobile ? 10 : 12),
+              Text(
+                'Nights in Hostel',
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 14,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          Text(
+            '$nightsInHostel/$totalNights',
+            style: TextStyle(
+              fontSize: isMobile ? 28 : 36,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF2563EB),
+            ),
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 10 : 12,
+              vertical: isMobile ? 6 : 8,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE0F2FE),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.person_outline,
+                  size: isMobile ? 14 : 16,
+                  color: const Color(0xFF2563EB),
+                ),
+                SizedBox(width: isMobile ? 4 : 6),
+                Flexible(
+                  child: Text(
+                    '$nightsAbsent nights absent',
+                    style: TextStyle(
+                      fontSize: isMobile ? 11 : 12,
+                      color: const Color(0xFF1E40AF),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrentStayStreakCard(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: isMobile ? 36 : 40,
+                height: isMobile ? 36 : 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF7C3AED),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.local_fire_department,
+                  color: Colors.white,
+                  size: isMobile ? 20 : 24,
+                ),
+              ),
+              SizedBox(width: isMobile ? 10 : 12),
+              Text(
+                'Current Stay Streak',
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 14,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          Text(
+            '$currentStreak nights',
+            style: TextStyle(
+              fontSize: isMobile ? 28 : 36,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF7C3AED),
+            ),
+          ),
+          SizedBox(height: isMobile ? 10 : 12),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 10 : 12,
+              vertical: isMobile ? 6 : 8,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEDE9FE),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.emoji_events,
+                  size: isMobile ? 14 : 16,
+                  color: const Color(0xFF7C3AED),
+                ),
+                SizedBox(width: isMobile ? 4 : 6),
+                Flexible(
+                  child: Text(
+                    'Best streak: $bestStreak nights',
+                    style: TextStyle(
+                      fontSize: isMobile ? 11 : 12,
+                      color: const Color(0xFF6D28D9),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeavesTakenCard(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: isMobile ? 36 : 40,
+                height: isMobile ? 36 : 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF97316),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.calendar_today,
+                  color: Colors.white,
+                  size: isMobile ? 20 : 24,
+                ),
+              ),
+              SizedBox(width: isMobile ? 10 : 12),
+              Text(
+                'Leaves Taken',
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 14,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          Text(
+            '$leavesTaken nights',
+            style: TextStyle(
+              fontSize: isMobile ? 28 : 36,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFFF97316),
+            ),
+          ),
+          SizedBox(height: isMobile ? 10 : 12),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 10 : 12,
+              vertical: isMobile ? 6 : 8,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF7ED),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.home_outlined,
+                  size: isMobile ? 14 : 16,
+                  color: const Color(0xFFF97316),
+                ),
+                SizedBox(width: isMobile ? 4 : 6),
+                Flexible(
+                  child: Text(
+                    '$nightOuts night outs recorded',
+                    style: TextStyle(
+                      fontSize: isMobile ? 11 : 12,
+                      color: const Color(0xFFD97706),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceTrendCard(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.bar_chart,
+                          size: 18,
+                          color: Color(0xFF64748B),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Hostel Attendance Trend',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              selectedPeriod,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF1E293B),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.arrow_drop_down,
+                            size: 16,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.bar_chart,
+                          size: 20,
+                          color: Color(0xFF64748B),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Hostel Attendance Trend',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            selectedPeriod,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.arrow_drop_down,
+                            size: 18,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+          SizedBox(height: isMobile ? 16 : 24),
+          SizedBox(
+            height: isMobile ? 160 : 200,
+            child: LineChart(
+              LineChartData(
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 25,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(
+                      color: const Color(0xFFE2E8F0),
+                      strokeWidth: 1,
+                    );
+                  },
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        final months = ['Aug 25', 'Sep 25', 'Oct 25', 'Nov 25'];
+                        if (value.toInt() >= 0 &&
+                            value.toInt() < months.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              months[value.toInt()],
+                              style: TextStyle(
+                                fontSize: isMobile ? 9 : 10,
+                                color: const Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          );
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: isMobile ? 35 : 40,
+                      interval: 25,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          '${value.toInt()}%',
+                          style: TextStyle(
+                            fontSize: isMobile ? 9 : 10,
+                            color: const Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: trendData.asMap().entries.map((e) {
+                      return FlSpot(e.key.toDouble(), e.value);
+                    }).toList(),
+                    isCurved: true,
+                    color: const Color(0xFF2563EB),
+                    barWidth: 3,
+                    isStrokeCapRound: true,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: const Color(0xFF2563EB).withOpacity(0.1),
+                    ),
+                  ),
+                ],
+                minY: 0,
+                maxY: 100,
+              ),
+            ),
+          ),
+          SizedBox(height: isMobile ? 8 : 12),
+          Text(
+            'Showing ${trendData.length} months of hostel attendance data ($selectedPeriod)',
+            style: TextStyle(
+              fontSize: isMobile ? 10 : 12,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerformanceSummaryCard(bool isMobile) {
+    final gaugeSize = isMobile ? 100.0 : 140.0;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.emoji_events,
+                size: isMobile ? 18 : 20,
+                color: const Color(0xFFF59E0B),
+              ),
+              SizedBox(width: isMobile ? 6 : 8),
+              Text(
+                'Performance Summary',
+                style: TextStyle(
+                  fontSize: isMobile ? 14 : 16,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isMobile ? 16 : 24),
+          isMobile
+              ? Column(
+                  children: [
+                    SizedBox(
+                      width: gaugeSize,
+                      height: gaugeSize,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: gaugeSize,
+                            height: gaugeSize,
+                            child: CircularProgressIndicator(
+                              value: overallAttendance / 100,
+                              strokeWidth: isMobile ? 10 : 12,
+                              backgroundColor: const Color(0xFFE2E8F0),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                overallAttendance >= 90
+                                    ? const Color(0xFF10B981)
+                                    : overallAttendance >= 75
+                                    ? const Color(0xFF2563EB)
+                                    : const Color(0xFFEF4444),
+                              ),
+                            ),
+                          ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '$overallAttendance%',
+                                style: TextStyle(
+                                  fontSize: isMobile ? 24 : 32,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF7C3AED),
+                                ),
+                              ),
+                              Text(
+                                'Hostel Attendance',
+                                style: TextStyle(
+                                  fontSize: isMobile ? 10 : 12,
+                                  color: const Color(0xFF64748B),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFDBA74),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Average',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFF97316),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    SizedBox(
+                      width: gaugeSize,
+                      height: gaugeSize,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: gaugeSize,
+                            height: gaugeSize,
+                            child: CircularProgressIndicator(
+                              value: overallAttendance / 100,
+                              strokeWidth: 12,
+                              backgroundColor: const Color(0xFFE2E8F0),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                overallAttendance >= 90
+                                    ? const Color(0xFF10B981)
+                                    : overallAttendance >= 75
+                                    ? const Color(0xFF2563EB)
+                                    : const Color(0xFFEF4444),
+                              ),
+                            ),
+                          ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '$overallAttendance%',
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF7C3AED),
+                                ),
+                              ),
+                              const Text(
+                                'Hostel Attendance',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFDBA74),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Average',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFF97316),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+          SizedBox(height: isMobile ? 16 : 24),
+          Text(
+            'Quick Stats',
+            style: TextStyle(
+              fontSize: isMobile ? 12 : 14,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+          SizedBox(height: isMobile ? 10 : 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildQuickStatCard(
+                  '$nightsInHostel',
+                  'Present Nights',
+                  const Color(0xFF10B981),
+                  isMobile,
+                ),
+              ),
+              SizedBox(width: isMobile ? 8 : 12),
+              Expanded(
+                child: _buildQuickStatCard(
+                  '$nightsAbsent',
+                  'Absent Nights',
+                  const Color(0xFFEF4444),
+                  isMobile,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isMobile ? 10 : 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildQuickStatCard(
+                  '$leavesTaken',
+                  'Leave Nights',
+                  const Color(0xFFF97316),
+                  isMobile,
+                ),
+              ),
+              SizedBox(width: isMobile ? 8 : 12),
+              Expanded(
+                child: _buildQuickStatCard(
+                  '$nightOuts',
+                  'Night Outs',
+                  const Color(0xFF7C3AED),
+                  isMobile,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickStatCard(
+    String value,
+    String label,
+    Color color,
+    bool isMobile,
+  ) {
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: isMobile ? 20 : 24,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+          SizedBox(height: isMobile ? 2 : 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: isMobile ? 11 : 12,
+              color: const Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMonthlyOverviewCard(bool isMobile) {
+    final startIndex = (currentPage - 1) * itemsPerPage;
+    final endIndex = math.min(startIndex + itemsPerPage, monthlyData.length);
+    final currentData = monthlyData.sublist(startIndex, endIndex);
+    final totalPages = (monthlyData.length / itemsPerPage).ceil();
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_month,
+                          size: 18,
+                          color: Color(0xFF64748B),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Monthly Hostel Attendance Overview',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.search,
+                            size: 14,
+                            color: Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: TextField(
+                              decoration: const InputDecoration(
+                                hintText: 'Search months...',
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                                hintStyle: TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF94A3B8),
+                                ),
+                              ),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_month,
+                          size: 20,
+                          color: Color(0xFF64748B),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Monthly Hostel Attendance Overview',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.search,
+                            size: 16,
+                            color: Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 6),
+                          SizedBox(
+                            width: 120,
+                            child: TextField(
+                              decoration: const InputDecoration(
+                                hintText: 'Search months...',
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                                hintStyle: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF94A3B8),
+                                ),
+                              ),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+          SizedBox(height: isMobile ? 6 : 8),
+          Text(
+            'Showing ${monthlyData.length} months of hostel attendance data.',
+            style: TextStyle(
+              fontSize: isMobile ? 11 : 12,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          // Horizontal Scrollbar with arrows
+          Container(
+            height: 20,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    if (_horizontalScrollController.hasClients) {
+                      _horizontalScrollController.animateTo(
+                        math.max(0, _horizontalScrollController.offset - 200),
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  },
+                  child: Container(
+                    width: 24,
+                    height: 20,
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.arrow_back_ios,
+                      size: 12,
+                      color: const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final scrollRatio = _maxScrollExtent > 0
+                          ? _scrollPosition / _maxScrollExtent
+                          : 0.0;
+                      final trackWidth = constraints.maxWidth - 8;
+                      final thumbWidth = math.max(20.0, trackWidth * 0.3);
+                      final thumbPosition =
+                          (trackWidth - thumbWidth) * scrollRatio;
+
+                      return Stack(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE2E8F0),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          if (_maxScrollExtent > 0)
+                            Positioned(
+                              left: thumbPosition + 4,
+                              child: Container(
+                                width: thumbWidth,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF64748B),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    if (_horizontalScrollController.hasClients) {
+                      _horizontalScrollController.animateTo(
+                        math.min(
+                          _horizontalScrollController.position.maxScrollExtent,
+                          _horizontalScrollController.offset + 200,
+                        ),
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  },
+                  child: Container(
+                    width: 24,
+                    height: 20,
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.arrow_forward_ios,
+                      size: 12,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: isMobile ? 8 : 12),
+          // Table - horizontally scrollable
+          Scrollbar(
+            controller: _horizontalScrollController,
+            thumbVisibility: true,
+            thickness: 8,
+            radius: const Radius.circular(4),
+            child: SingleChildScrollView(
+              controller: _horizontalScrollController,
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: isMobile ? 700 : 900),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Table Header
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        vertical: isMobile ? 10 : 12,
+                        horizontal: isMobile ? 12 : 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 100,
+                            child: _buildTableHeader('Month', isMobile),
+                          ),
+                          SizedBox(width: 140),
+                          SizedBox(
+                            width: 140,
+                            child: _buildTableHeader(
+                              'Attendance Days',
+                              isMobile,
+                            ),
+                          ),
+                          SizedBox(width: 100),
+                          SizedBox(
+                            width: 140,
+                            child: _buildTableHeader('Status', isMobile),
+                          ),
+                          SizedBox(width: 100),
+                          SizedBox(
+                            width: 80,
+                            child: _buildTableHeader('%', isMobile),
+                          ),
+                          SizedBox(width: 120),
+                          SizedBox(
+                            width: 120,
+                            child: _buildTableHeader('Actions', isMobile),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Table Rows
+                    ...currentData.map(
+                      (data) => _buildMonthlyRow(data, isMobile),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          // Pagination
+          isMobile
+              ? Column(
+                  children: [
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        IconButton(
+                          onPressed: currentPage > 1
+                              ? () {
+                                  setState(() {
+                                    currentPage--;
+                                  });
+                                }
+                              : null,
+                          icon: const Icon(Icons.chevron_left),
+                          color: currentPage > 1
+                              ? const Color(0xFF2563EB)
+                              : const Color(0xFF94A3B8),
+                        ),
+                        Text(
+                          '${startIndex + 1}-${endIndex} of ${monthlyData.length} months',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                        ...List.generate(math.min(totalPages, 3), (index) {
+                          final pageNum = index + 1;
+                          final isActive = pageNum == currentPage;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                currentPage = pageNum;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? const Color(0xFF2563EB)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '$pageNum',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: isActive
+                                      ? Colors.white
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                        IconButton(
+                          onPressed: currentPage < totalPages
+                              ? () {
+                                  setState(() {
+                                    currentPage++;
+                                  });
+                                }
+                              : null,
+                          icon: const Icon(Icons.chevron_right),
+                          color: currentPage < totalPages
+                              ? const Color(0xFF2563EB)
+                              : const Color(0xFF94A3B8),
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      onPressed: currentPage > 1
+                          ? () {
+                              setState(() {
+                                currentPage--;
+                              });
+                            }
+                          : null,
+                      icon: const Icon(Icons.chevron_left),
+                      color: currentPage > 1
+                          ? const Color(0xFF2563EB)
+                          : const Color(0xFF94A3B8),
+                    ),
+                    Text(
+                      '${startIndex + 1}-${endIndex} of ${monthlyData.length} months',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                    ...List.generate(totalPages, (index) {
+                      final pageNum = index + 1;
+                      final isActive = pageNum == currentPage;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            currentPage = pageNum;
+                          });
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? const Color(0xFF2563EB)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$pageNum',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isActive
+                                  ? Colors.white
+                                  : const Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                    IconButton(
+                      onPressed: currentPage < totalPages
+                          ? () {
+                              setState(() {
+                                currentPage++;
+                              });
+                            }
+                          : null,
+                      icon: const Icon(Icons.chevron_right),
+                      color: currentPage < totalPages
+                          ? const Color(0xFF2563EB)
+                          : const Color(0xFF94A3B8),
+                    ),
+                  ],
+                ),
+          SizedBox(height: isMobile ? 12 : 16),
+          // Status Legend
+          Container(
+            padding: EdgeInsets.all(isMobile ? 12 : 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hostel Status Legend:',
+                  style: TextStyle(
+                    fontSize: isMobile ? 11 : 12,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                SizedBox(height: isMobile ? 6 : 8),
+                Wrap(
+                  spacing: isMobile ? 12 : 16,
+                  runSpacing: isMobile ? 8 : 0,
+                  children: [
+                    _buildLegendItem('Present (P)', const Color(0xFF10B981)),
+                    _buildLegendItem('Absent (A)', const Color(0xFFEF4444)),
+                    _buildLegendItem('Leave (L)', const Color(0xFFF59E0B)),
+                    _buildLegendItem('Holiday (H)', const Color(0xFF2563EB)),
+                    _buildLegendItem('Night Out (NO)', const Color(0xFF7C3AED)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableHeader(String text, bool isMobile) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: isMobile ? 10 : 12,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF1E293B),
+      ),
+    );
+  }
+
+  Widget _buildMonthlyRow(Map<String, dynamic> data, bool isMobile) {
+    final percentage = data['percentage'] as double;
+    final attended = data['attended'] as int;
+    final total = data['total'] as int;
+    final progress = total > 0 ? attended / total : 0.0;
+    final status = data['status'] as String;
+
+    Color percentageColor;
+    Color progressColor;
+    if (percentage >= 90) {
+      percentageColor = const Color(0xFF10B981);
+      progressColor = const Color(0xFF10B981);
+    } else if (percentage >= 75) {
+      percentageColor = const Color(0xFFF97316);
+      progressColor = const Color(0xFFF97316);
+    } else {
+      percentageColor = const Color(0xFFEF4444);
+      progressColor = const Color(0xFFEF4444);
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        vertical: isMobile ? 12 : 16,
+        horizontal: isMobile ? 12 : 16,
+      ),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: const Color(0xFFE2E8F0), width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 100,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_today,
+                  size: isMobile ? 14 : 16,
+                  color: const Color(0xFF10B981),
+                ),
+                SizedBox(width: isMobile ? 4 : 8),
+                Expanded(
+                  child: Text(
+                    data['month'] as String,
+                    style: TextStyle(
+                      fontSize: isMobile ? 10 : 12,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF1E293B),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 140),
+          SizedBox(
+            width: 140,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: isMobile ? 6 : 8,
+                    backgroundColor: const Color(0xFFE2E8F0),
+                    valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                  ),
+                ),
+                SizedBox(height: isMobile ? 2 : 4),
+                Text(
+                  '$attended/$total nights',
+                  style: TextStyle(
+                    fontSize: isMobile ? 10 : 11,
+                    color: const Color(0xFF64748B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 100),
+          SizedBox(
+            width: 140,
+            child: Wrap(
+              spacing: isMobile ? 4 : 6,
+              runSpacing: 4,
+              children: [
+                _buildStatusIcon(
+                  Icons.check_circle,
+                  data['present'] as int,
+                  const Color(0xFF10B981),
+                  isMobile,
+                ),
+                _buildStatusIcon(
+                  Icons.cancel,
+                  data['absent'] as int,
+                  const Color(0xFFEF4444),
+                  isMobile,
+                ),
+                _buildStatusIcon(
+                  Icons.calendar_today,
+                  data['leaves'] as int,
+                  const Color(0xFFF59E0B),
+                  isMobile,
+                ),
+                _buildStatusIcon(
+                  Icons.apartment,
+                  data['holidays'] as int,
+                  const Color(0xFF2563EB),
+                  isMobile,
+                ),
+                _buildStatusIcon(
+                  Icons.home,
+                  data['nightOuts'] as int,
+                  const Color(0xFF7C3AED),
+                  isMobile,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 100),
+          SizedBox(
+            width: 80,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${percentage.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: isMobile ? 12 : 14,
+                    fontWeight: FontWeight.w600,
+                    color: percentageColor,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: isMobile ? 2 : 4),
+                Text(
+                  status,
+                  style: TextStyle(
+                    fontSize: isMobile ? 10 : 12,
+                    color: const Color(0xFF64748B),
+                    fontWeight: FontWeight.w400,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 120),
+          SizedBox(
+            width: 120,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        HostelMonthDetailPage(monthData: data),
+                  ),
+                );
+              },
+              icon: Icon(
+                Icons.visibility,
+                size: isMobile ? 14 : 16,
+                color: Colors.white,
+              ),
+              label: Text(
+                isMobile ? 'View' : 'View Details',
+                style: TextStyle(
+                  fontSize: isMobile ? 10 : 12,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 8 : 12,
+                  vertical: isMobile ? 6 : 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusIcon(
+    IconData icon,
+    int count,
+    Color color,
+    bool isMobile,
+  ) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: isMobile ? 12 : 16, color: color),
+        SizedBox(width: isMobile ? 2 : 4),
+        Text(
+          '$count',
+          style: TextStyle(
+            fontSize: isMobile ? 9 : 12,
+            color: color,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecentActivityCard(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.access_time,
+                size: isMobile ? 18 : 20,
+                color: const Color(0xFF7C3AED),
+              ),
+              SizedBox(width: isMobile ? 6 : 8),
+              Text(
+                'Recent Activity',
+                style: TextStyle(
+                  fontSize: isMobile ? 14 : 16,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          _buildActivityItem(
+            Icons.remove_circle,
+            const Color(0xFFF59E0B),
+            'Overall Hostel Attendance',
+            '83.9% attendance rate',
+            'Updated just now',
+            '83.9%',
+            isMobile,
+          ),
+          _buildActivityItem(
+            Icons.emoji_events,
+            const Color(0xFFF97316),
+            'Best Stay Streak',
+            '19 consecutive nights in hostel',
+            'Previous record',
+            null,
+            isMobile,
+          ),
+          _buildActivityItem(
+            Icons.local_fire_department,
+            const Color(0xFF7C3AED),
+            'Current Stay Streak',
+            '5 consecutive nights in hostel',
+            'Active now',
+            null,
+            isMobile,
+          ),
+          _buildActivityItem(
+            Icons.cancel,
+            const Color(0xFFEF4444),
+            'Apr 26 Hostel Attendance',
+            '0 present, 0 absent, 0 leaves',
+            'No change',
+            '0',
+            isMobile,
+            date: 'End of Apr 26',
+            showViewDetails: true,
+          ),
+          _buildActivityItem(
+            Icons.cancel,
+            const Color(0xFFEF4444),
+            'Mar 26 Hostel Attendance',
+            '0 present, 0 absent, 0 leaves',
+            'No change',
+            '0',
+            isMobile,
+            date: 'End of Mar 26',
+            showViewDetails: true,
+            isLast: true,
+          ),
+          SizedBox(height: isMobile ? 12 : 16),
+          Center(
+            child: TextButton.icon(
+              onPressed: () {},
+              icon: Icon(
+                Icons.refresh,
+                size: isMobile ? 14 : 16,
+                color: const Color(0xFF2563EB),
+              ),
+              label: Text(
+                'Refresh Activities',
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 14,
+                  color: const Color(0xFF2563EB),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActivityItem(
+    IconData icon,
+    Color color,
+    String title,
+    String details,
+    String status,
+    String? value,
+    bool isMobile, {
+    String? date,
+    bool showViewDetails = false,
+    bool isLast = false,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(bottom: isLast ? 0 : (isMobile ? 12 : 16)),
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: isMobile ? 36 : 40,
+            height: isMobile ? 36 : 40,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            child: Icon(icon, color: Colors.white, size: isMobile ? 18 : 20),
+          ),
+          SizedBox(width: isMobile ? 10 : 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: isMobile ? 12 : 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                SizedBox(height: isMobile ? 2 : 4),
+                Text(
+                  details,
+                  style: TextStyle(
+                    fontSize: isMobile ? 11 : 12,
+                    color: const Color(0xFF64748B),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: isMobile ? 2 : 4),
+                Text(
+                  status,
+                  style: TextStyle(
+                    fontSize: isMobile ? 10 : 11,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ),
+                if (date != null) ...[
+                  SizedBox(height: isMobile ? 2 : 4),
+                  Text(
+                    date,
+                    style: TextStyle(
+                      fontSize: isMobile ? 10 : 11,
+                      color: const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
+                if (showViewDetails) ...[
+                  SizedBox(height: isMobile ? 6 : 8),
+                  TextButton(
+                    onPressed: () {},
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      'View Details',
+                      style: TextStyle(
+                        fontSize: isMobile ? 11 : 12,
+                        color: const Color(0xFF2563EB),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (value != null)
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 8 : 12,
+                vertical: isMobile ? 4 : 6,
+              ),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 14,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
