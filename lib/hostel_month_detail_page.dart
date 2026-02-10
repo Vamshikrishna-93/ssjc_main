@@ -14,32 +14,31 @@ class _HostelMonthDetailPageState extends State<HostelMonthDetailPage> {
   final ScrollController _verticalScrollController = ScrollController();
 
   // Sample data - replace with actual data from widget.monthData
-  final String hostelName = "ADARSA";
-  final String floor = "2ND FLOOR A&B BLOCKS";
-  final String room = "B-204";
-  final String warden = "JENNIPOGU ABHI RAM";
+  String get hostelName => widget.monthData['hostel_name'] ?? "ADARSA";
+  String get floor => widget.monthData['floor_name'] ?? "2ND FLOOR A&B BLOCKS";
+  String get room => widget.monthData['room_name'] ?? "B-204";
+  String get warden => widget.monthData['warden_name'] ?? "JENNIPOGU ABHI RAM";
 
   List<Map<String, dynamic>> get attendanceDetails {
-    // Generate attendance details from month data
-    // For now, return sample data - you can replace this with actual API data
-    final monthData = widget.monthData;
-    final int presentNights = monthData['present'] ?? 0;
+    // Try to get details from various possible keys in the API response
+    final details =
+        widget.monthData['details'] ??
+        widget.monthData['attendance_details'] ??
+        widget.monthData['attendance_data'] ??
+        [];
 
-    if (presentNights == 0) {
-      return [];
-    }
+    if (details is! List) return [];
 
-    // Sample data - replace with actual data from API
-    return [
-      {
-        'date': '30 Saturday',
-        'checkType': 'Hostel Stay',
-        'time': 'Night Roll Call',
-        'warden': 'Hostel Incharge',
-        'status': 'Present',
-        'remark': 'Stayed in hostel',
-      },
-    ];
+    return details.map<Map<String, dynamic>>((d) {
+      return {
+        'date': d['attendance_date'] ?? d['date'] ?? '',
+        'checkType': d['check_type'] ?? 'Hostel Stay',
+        'time': d['time'] ?? d['in_time'] ?? '',
+        'warden': d['warden_name'] ?? d['warden'] ?? '',
+        'status': d['status'] ?? '',
+        'remark': d['remarks'] ?? d['remark'] ?? '',
+      };
+    }).toList();
   }
 
   @override
@@ -76,7 +75,8 @@ class _HostelMonthDetailPageState extends State<HostelMonthDetailPage> {
     final int leaveNights = monthData['leaves'] ?? 0;
     final int holidayNights = monthData['holidays'] ?? 0;
     final int nightOuts = monthData['nightOuts'] ?? 0;
-    final double attendancePercentage = monthData['percentage'] ?? 0.0;
+    final double attendancePercentage =
+        double.tryParse(monthData['percentage']?.toString() ?? '0') ?? 0.0;
     final int totalNights = monthData['total'] ?? 0;
 
     final int performanceStars = _calculatePerformanceStars(

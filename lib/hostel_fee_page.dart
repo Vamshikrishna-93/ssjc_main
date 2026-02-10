@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:student_app/hostel_payment_page.dart';
+import 'package:student_app/receipt_page.dart';
+import 'package:student_app/services/fee_services_page.dart';
 import 'package:student_app/studentdrawer.dart';
 import 'package:student_app/theme_controller.dart';
 
@@ -15,11 +17,87 @@ class HostelFeesPage extends StatefulWidget {
 class _HostelFeesPageState extends State<HostelFeesPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isLoading = true;
+  dynamic _feeData;
+  String? _errorMessage;
+
+  // Safe accessors
+  Map<String, dynamic> get _data =>
+      _feeData is Map<String, dynamic> ? _feeData : {};
+
+  List<dynamic> get _feeDetails =>
+      _data['student_fee_details'] is List ? _data['student_fee_details'] : [];
+  List<dynamic> get _paymentHistory =>
+      _data['payment_history'] is List ? _data['payment_history'] : [];
+
+  double get _totalFee {
+    if (_data['total_fee'] != null)
+      return double.tryParse(_data['total_fee'].toString()) ?? 0.0;
+    return _feeDetails.fold(
+      0.0,
+      (sum, item) =>
+          sum + (double.tryParse(item['total_amount']?.toString() ?? '0') ?? 0),
+    );
+  }
+
+  double get _totalPaid {
+    if (_data['total_paid'] != null)
+      return double.tryParse(_data['total_paid'].toString()) ?? 0.0;
+    return _feeDetails.fold(
+      0.0,
+      (sum, item) =>
+          sum + (double.tryParse(item['paid_amount']?.toString() ?? '0') ?? 0),
+    );
+  }
+
+  double get _totalDue {
+    if (_data['total_due'] != null)
+      return double.tryParse(_data['total_due'].toString()) ?? 0.0;
+    return _feeDetails.fold(
+      0.0,
+      (sum, item) =>
+          sum +
+          (double.tryParse(item['balance_amount']?.toString() ?? '0') ?? 0),
+    );
+  }
+
+  String get _branchName =>
+      _data['branch_name']?.toString() ?? 'SSJC-ADARSA CAMPUS';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final data = await HostelFeeService.getHostelFeeData();
+      if (mounted) {
+        setState(() {
+          if (data is Map<String, dynamic> &&
+              data.containsKey('data') &&
+              data['data'] is Map) {
+            _feeData = data['data'];
+          } else {
+            _feeData = data;
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e.toString();
+        });
+      }
+    }
   }
 
   @override
@@ -148,54 +226,68 @@ class _HostelFeesPageState extends State<HostelFeesPage>
           ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _header(),
-              const SizedBox(height: 16),
-              _summaryCard(
-                type: SummaryType.danger,
-                title: "Total Due Amount",
-                value: "₹39,200",
-                badgeText: "Immediate attention required",
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text("Error: $_errorMessage"),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _fetchData,
+                    child: const Text("Retry"),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              _summaryCard(
-                type: SummaryType.success,
-                title: "Total Paid Amount",
-                value: "₹16,500",
-                badgeText: "29.6% of total fee paid",
+            )
+          : SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _header(),
+                    const SizedBox(height: 16),
+                    _summaryCard(
+                      type: SummaryType.danger,
+                      title: "Total Due Amount",
+                      value: "₹${_totalDue.toStringAsFixed(0)}",
+                      badgeText: "Immediate attention required",
+                    ),
+                    const SizedBox(height: 16),
+                    _summaryCard(
+                      type: SummaryType.success,
+                      title: "Total Paid Amount",
+                      value: "₹${_totalPaid.toStringAsFixed(0)}",
+                      badgeText:
+                          "${(_totalFee > 0 ? (_totalPaid / _totalFee * 100) : 0).toStringAsFixed(1)}% of total fee paid",
+                    ),
+                    const SizedBox(height: 16),
+                    _summaryCard(
+                      type: SummaryType.warning,
+                      title: "Next Due Date",
+                      value: _data['next_due_date']?.toString() ?? "Immediate Payment Required",
+                      badgeText: _totalDue > 0 ? "Payment pending" : "No dues",
+                    ),
+                    const SizedBox(height: 16),
+                    _summaryCard(
+                      type: SummaryType.info,
+                      title: "Payment Status",
+                      value: _totalDue > 0 ? "Pending" : "Completed",
+                      badgeText: "Total Fee: ₹${_totalFee.toStringAsFixed(0)}",
+                    ),
+                    const SizedBox(height: 28),
+                    _tabsSection(),
+                    const SizedBox(height: 28),
+                    _feeSummaryCard(),
+                    const SizedBox(height: 28),
+                    _branchSummaryCard(),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              _summaryCard(
-                type: SummaryType.warning,
-                title: "Next Due Date",
-                value: "Immediate Payment Required",
-                badgeText: "Payment pending",
-              ),
-              const SizedBox(height: 16),
-              _summaryCard(
-                type: SummaryType.info,
-                title: "Payment Status",
-                value: "Pending",
-                badgeText: "Total Fee: ₹55,700",
-              ),
-
-              const SizedBox(height: 28),
-              _tabsSection(),
-
-              const SizedBox(height: 28),
-
-              _feeSummaryCard(),
-              const SizedBox(height: 28),
-              _branchSummaryCard(),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 
@@ -257,14 +349,32 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _outlinedBtn(Icons.refresh, "Refresh"),
+                    _outlinedBtn(
+                      Icons.refresh,
+                      "Refresh",
+                      onPressed: _fetchData,
+                    ),
                     const SizedBox(width: 12),
 
-                    _outlinedBtn(Icons.download, "Export History"),
+                    _outlinedBtn(
+                      Icons.download,
+                      "Export History",
+                      onPressed: () {
+                        _toast("Exporting history...");
+                        Future.delayed(const Duration(seconds: 2), () {
+                          if (mounted) _toast("History exported to Downloads");
+                        });
+                      },
+                    ),
                     const SizedBox(width: 12),
 
                     ElevatedButton.icon(
-                      onPressed: () => _toast("Printing statement..."),
+                      onPressed: () {
+                        _toast("Generating statement...");
+                        Future.delayed(const Duration(seconds: 2), () {
+                          if (mounted) _toast("Statement sent to printer");
+                        });
+                      },
                       icon: const Icon(Icons.print),
                       label: const Text("Print Statement"),
                       style: ElevatedButton.styleFrom(
@@ -286,9 +396,9 @@ class _HostelFeesPageState extends State<HostelFeesPage>
     );
   }
 
-  Widget _outlinedBtn(IconData icon, String label) {
+  Widget _outlinedBtn(IconData icon, String label, {VoidCallback? onPressed}) {
     return OutlinedButton.icon(
-      onPressed: () => _toast("$label clicked"),
+      onPressed: onPressed ?? () => _toast("$label clicked"),
       icon: Icon(icon),
       label: Text(label),
       style: OutlinedButton.styleFrom(
@@ -473,19 +583,19 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "₹39,200 Payment Pending",
+                          "₹${_totalDue.toStringAsFixed(0)} Payment Pending",
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
                           ),
                         ),
-                        SizedBox(height: 4),
-                        Text(
+                        const SizedBox(height: 4),
+                        const Text(
                           "Please make the payment at the earliest to avoid any inconvenience.",
                           style: TextStyle(color: Colors.black54),
                         ),
@@ -494,11 +604,11 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const HostelPaymentPage(),
+                          builder: (context) =>
+                              HostelPaymentPage(payableAmount: _totalDue),
                         ),
                       );
                     },
@@ -546,58 +656,31 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                       ),
                     ),
 
-                    _feeRow(
-                      head: "HOSTEL & TUITION FEE",
-                      committed: "₹36,000",
-                      total: "₹36,000",
-                      paid: "₹0",
-                      balance: "₹36,000",
-                      pending: true,
-                    ),
-                    _feeRow(
-                      head: "MATERIAL",
-                      committed: "₹12,500",
-                      total: "₹12,500",
-                      paid: "₹12,500",
-                      balance: "₹0",
-                    ),
-                    _feeRow(
-                      head: "DHOBI",
-                      committed: "₹3,000",
-                      total: "₹3,000",
-                      paid: "₹0",
-                      balance: "₹3,000",
-                      pending: true,
-                    ),
-                    _feeRow(
-                      head: "JR IPE TRANSPORT",
-                      committed: "₹400",
-                      total: "₹400",
-                      paid: "₹400",
-                      balance: "₹0",
-                    ),
-                    _feeRow(
-                      head: "IDC CARD",
-                      committed: "₹300",
-                      total: "₹300",
-                      paid: "₹300",
-                      balance: "₹0",
-                    ),
-                    _feeRow(
-                      head: "EXAM FEE",
-                      committed: "₹2,500",
-                      total: "₹2,500",
-                      paid: "₹2,500",
-                      balance: "₹0",
-                    ),
-                    _feeRow(
-                      head: "IMP QB",
-                      committed: "₹200",
-                      total: "₹200",
-                      paid: "₹0",
-                      balance: "₹200",
-                      pending: true,
-                    ),
+                    if (_feeDetails.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text("No fee details available"),
+                      ),
+
+                    ..._feeDetails.map((fee) {
+                      final balance =
+                          double.tryParse(
+                            fee['balance_amount']?.toString() ?? '0',
+                          ) ??
+                          0;
+                      return _feeRow(
+                        head:
+                            fee['fee_head']?.toString() ??
+                            fee['fee_head_name']?.toString() ??
+                            'Unknown',
+                        committed: "₹${fee['total_amount'] ?? 0}",
+                        total: "₹${fee['total_amount'] ?? 0}",
+                        paid: "₹${fee['paid_amount'] ?? 0}",
+                        balance: "₹${fee['balance_amount'] ?? 0}",
+                        pending: balance > 0,
+                        balanceValue: balance,
+                      );
+                    }),
 
                     // GRAND TOTAL
                     Container(
@@ -609,15 +692,27 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                       child: Row(
                         children: [
                           _GT("Grand Total", 3),
-                          _GT("₹55,700", 2, color: Colors.orange),
-                          _GT("₹16,500", 2, color: Colors.green),
-                          _GT("₹39,200", 2, color: Colors.red),
-                          const Expanded(
+                          _GT(
+                            "₹${_totalFee.toStringAsFixed(0)}",
+                            2,
+                            color: warning,
+                          ),
+                          _GT(
+                            "₹${_totalPaid.toStringAsFixed(0)}",
+                            2,
+                            color: success,
+                          ),
+                          _GT(
+                            "₹${_totalDue.toStringAsFixed(0)}",
+                            2,
+                            color: danger,
+                          ),
+                          Expanded(
                             flex: 4,
                             child: LinearProgressIndicator(
-                              value: 0.3,
-                              backgroundColor: Color(0xFFE5E7EB),
-                              color: Color(0xFF22C55E),
+                              value: _totalFee > 0 ? _totalPaid / _totalFee : 0,
+                              backgroundColor: const Color(0xFFE5E7EB),
+                              color: const Color(0xFF22C55E),
                               minHeight: 8,
                             ),
                           ),
@@ -648,6 +743,7 @@ class _HostelFeesPageState extends State<HostelFeesPage>
     required String paid,
     required String balance,
     bool pending = false,
+    double balanceValue = 0.0,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
@@ -690,11 +786,11 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                 if (pending)
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const HostelPaymentPage(),
+                          builder: (context) =>
+                              HostelPaymentPage(payableAmount: balanceValue),
                         ),
                       );
                     },
@@ -708,7 +804,21 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                   )
                 else
                   OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ReceiptPage(
+                            data: {
+                              'amount': paid,
+                              'receipt_no':
+                                  "STMT-${head.replaceAll(RegExp(r'[^a-zA-Z]'), '').substring(0, 3).toUpperCase()}-${DateTime.now().year}",
+                              'date': DateTime.now().toString().split(' ')[0],
+                            },
+                          ),
+                        ),
+                      );
+                    },
                     icon: const Icon(Icons.receipt, size: 16),
                     label: const Text("Receipt"),
                   ),
@@ -782,15 +892,15 @@ class _HostelFeesPageState extends State<HostelFeesPage>
               // LEFT COLUMN (STACKED TEXTS)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
-                    "Total Fee Heads: 5",
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    "Total Transactions: ${_paymentHistory.length}",
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  SizedBox(height: 6),
+                  const SizedBox(height: 6),
                   Text(
-                    "Total Paid: ₹16,500",
-                    style: TextStyle(
+                    "Total Paid: ₹${_totalPaid.toStringAsFixed(0)}",
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       color: Colors.green,
                     ),
@@ -845,64 +955,20 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                     ),
                   ),
 
-                  _paymentRow(
-                    date: "2025-10-15",
-                    invoice: "OTADR25263\n779",
-                    amount: "₹2,500",
-                  ),
-                  _paymentRow(
-                    date: "2025-09-28",
-                    invoice: "OTADR25263\n364",
-                    amount: "₹800",
-                  ),
-                  _paymentRow(
-                    date: "2025-09-03",
-                    invoice: "OTADR25263\n017",
-                    amount: "₹700",
-                  ),
-                  _paymentRow(
-                    date: "2025-04-07",
-                    invoice: "OTADR25261\n041",
-                    amount: "₹12,500",
-                  ),
+                  if (_paymentHistory.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text("No payment history available"),
+                    ),
+
+                  ..._paymentHistory.map((payment) => _paymentRow(payment)),
                 ],
               ),
             ),
           ),
-
+          
           const SizedBox(height: 16),
-
-          // PAGINATION
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: () {},
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFF1677FF)),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  "1",
-                  style: TextStyle(
-                    color: Color(0xFF1677FF),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: () {},
-              ),
-            ],
-          ),
+          // Removed static pagination
         ],
       ),
     );
@@ -923,11 +989,14 @@ class _HostelFeesPageState extends State<HostelFeesPage>
     );
   }
 
-  Widget _paymentRow({
-    required String date,
-    required String invoice,
-    required String amount,
-  }) {
+  Widget _paymentRow(Map<String, dynamic> payment) {
+    final date = payment['payment_date']?.toString() ?? '';
+    final invoice = payment['receipt_no']?.toString() ?? '';
+    final amount = "₹${payment['amount'] ?? 0}";
+    final type = payment['fee_head']?.toString() ?? 'Fee Payment';
+    final mode = payment['payment_mode']?.toString() ?? 'Online';
+    final status = payment['status']?.toString() ?? 'Paid';
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
       decoration: const BoxDecoration(
@@ -938,19 +1007,50 @@ class _HostelFeesPageState extends State<HostelFeesPage>
           _cellPH(date, 2),
           _cellPH(invoice, 2, link: true),
           _tagPH(
-            "Other Fee",
+            type,
             2,
             const Color(0xFFF3E8FF),
             const Color(0xFF7C3AED),
           ),
           _cellPH(amount, 2, color: Colors.green, bold: true),
-          _tagPH("CASH", 2, const Color(0xFFFFF7ED), const Color(0xFFF97316)),
-          _tagPH("Paid", 2, const Color(0xFFF0FDF4), const Color(0xFF22C55E)),
+          _tagPH(mode, 2, const Color(0xFFFFF7ED), const Color(0xFFF97316)),
+          _tagPH(status, 2, const Color(0xFFF0FDF4), const Color(0xFF22C55E)),
           Row(
-            children: const [
-              Icon(Icons.remove_red_eye, color: Color(0xFF1677FF), size: 18),
-              SizedBox(width: 12),
-              Icon(Icons.download, color: Color(0xFF1677FF), size: 18),
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.remove_red_eye,
+                  color: Color(0xFF1677FF),
+                  size: 18,
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ReceiptPage(
+                        data: {
+                          'amount': amount,
+                          'receipt_no': invoice,
+                          'date': date,
+                        },
+                      ),
+                    ),
+                  );
+                },
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 12),
+              IconButton(
+                icon: const Icon(
+                  Icons.download,
+                  color: Color(0xFF1677FF),
+                  size: 18,
+                ),
+                onPressed: () => _toast("Downloading receipt $invoice..."),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
             ],
           ),
         ],
@@ -1106,15 +1206,15 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                 // LEFT SIDE (STACKED TEXT)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
-                      "Total Fee Heads: 5",
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                      "Total Fee Heads: ${_feeDetails.length}",
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      "Total Paid: ₹16,500",
-                      style: TextStyle(
+                      "Total Paid: ₹${_totalPaid.toStringAsFixed(0)}",
+                      style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         color: Colors.green,
                       ),
@@ -1150,41 +1250,38 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                 child: Column(
                   children: [
                     paymentByHeadHeader(),
-                    paymentByHeadData(
-                      "MATERIAL",
-                      "₹12,500",
-                      0.76,
-                      "Major Contribution",
-                      Colors.green,
-                    ),
-                    paymentByHeadData(
-                      "EXAM FEE",
-                      "₹2,500",
-                      0.15,
-                      "Moderate Contribution",
-                      Colors.orange,
-                    ),
-                    paymentByHeadData(
-                      "RECORDS",
-                      "₹800",
-                      0.05,
-                      "Minor Contribution",
-                      Colors.purple,
-                    ),
-                    paymentByHeadData(
-                      "JR IPE TRANSPORT",
-                      "₹400",
-                      0.02,
-                      "Minor Contribution",
-                      Colors.purple,
-                    ),
-                    paymentByHeadData(
-                      "IDCARD",
-                      "₹300",
-                      0.02,
-                      "Minor Contribution",
-                      Colors.purple,
-                    ),
+                    if (_feeDetails.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text("No fee details available"),
+                      ),
+                    ..._feeDetails.map((fee) {
+                      final paid =
+                          double.tryParse(
+                            fee['paid_amount']?.toString() ?? '0',
+                          ) ??
+                          0;
+                      final percentage = _totalPaid > 0
+                          ? paid / _totalPaid
+                          : 0.0;
+                      return paymentByHeadData(
+                        fee['fee_head']?.toString() ??
+                            fee['fee_head_name']?.toString() ??
+                            'Unknown',
+                        "₹${paid.toStringAsFixed(0)}",
+                        percentage,
+                        percentage > 0.5
+                            ? "Major Contribution"
+                            : (percentage > 0.1
+                                  ? "Moderate Contribution"
+                                  : "Minor Contribution"),
+                        percentage > 0.5
+                            ? Colors.green
+                            : (percentage > 0.1
+                                  ? Colors.orange
+                                  : Colors.purple),
+                      );
+                    }),
 
                     // TOTAL ROW
                     Container(
@@ -1203,11 +1300,11 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                             ),
                           ),
                           const Expanded(flex: 3, child: SizedBox()),
-                          const Expanded(
+                          Expanded(
                             flex: 2,
                             child: Text(
-                              "₹16,500",
-                              style: TextStyle(
+                              "₹${_totalPaid.toStringAsFixed(0)}",
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: Colors.green,
                               ),
@@ -1216,7 +1313,7 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                           Expanded(
                             flex: 2,
                             child: LinearProgressIndicator(
-                              value: 1,
+                              value: _totalFee > 0 ? _totalPaid / _totalFee : 0,
                               minHeight: 8,
                               color: Colors.green,
                               backgroundColor: Colors.grey.shade300,
@@ -1250,11 +1347,19 @@ class _HostelFeesPageState extends State<HostelFeesPage>
 
             const SizedBox(height: 20),
 
-            visualRow("MATERIAL", "₹12,500 (76%)", 0.76, Colors.green),
-            visualRow("EXAM FEE", "₹2,500 (15%)", 0.15, Colors.blue),
-            visualRow("RECORDS", "₹800 (5%)", 0.05, Colors.orange),
-            visualRow("JR IPE TRANSPORT", "₹400 (2%)", 0.02, Colors.deepPurple),
-            visualRow("IDCARD", "₹300 (2%)", 0.02, Colors.pink),
+            ..._feeDetails.map((fee) {
+              final paid =
+                  double.tryParse(fee['paid_amount']?.toString() ?? '0') ?? 0;
+              final percentage = _totalPaid > 0 ? paid / _totalPaid : 0.0;
+              return visualRow(
+                fee['fee_head']?.toString() ??
+                    fee['fee_head_name']?.toString() ??
+                    'Unknown',
+                "₹${paid.toStringAsFixed(0)} (${(percentage * 100).toStringAsFixed(1)}%)",
+                percentage,
+                Colors.blue,
+              );
+            }),
           ],
         ),
       ),
@@ -1264,7 +1369,7 @@ class _HostelFeesPageState extends State<HostelFeesPage>
   // ================= FEE SUMMARY =================
 
   Widget _feeSummaryCard() {
-    const double progress = 0.30;
+    final double progress = _totalFee > 0 ? _totalPaid / _totalFee : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(22),
@@ -1295,14 +1400,22 @@ class _HostelFeesPageState extends State<HostelFeesPage>
 
           const SizedBox(height: 18),
 
-          row("Total Fee", "₹55,700"),
+          row("Total Fee", "₹${_totalFee.toStringAsFixed(0)}"),
           row("Discount", "₹0", valueColor: Colors.green),
-          row("Committed Fee", "₹55,700"),
+          row("Committed Fee", "₹${_totalFee.toStringAsFixed(0)}"),
 
           const SizedBox(height: 14),
 
-          row("Total Paid", "₹16,500", valueColor: const Color(0xFF16A34A)),
-          row("Total Due", "₹39,200", valueColor: const Color(0xFFDC2626)),
+          row(
+            "Total Paid",
+            "₹${_totalPaid.toStringAsFixed(0)}",
+            valueColor: const Color(0xFF16A34A),
+          ),
+          row(
+            "Total Due",
+            "₹${_totalDue.toStringAsFixed(0)}",
+            valueColor: const Color(0xFFDC2626),
+          ),
 
           const SizedBox(height: 18),
 
@@ -1328,7 +1441,10 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                 ),
               ),
               const SizedBox(width: 10),
-              const Text("30%", style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(
+                "${(progress * 100).toStringAsFixed(0)}%",
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
             ],
           ),
         ],
@@ -1348,9 +1464,9 @@ class _HostelFeesPageState extends State<HostelFeesPage>
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           // Header
-          Row(
+          const Row(
             children: [
               Icon(Icons.account_balance, size: 22, color: Color(0xFF7C3AED)),
               SizedBox(width: 8),
@@ -1360,19 +1476,19 @@ class _HostelFeesPageState extends State<HostelFeesPage>
               ),
             ],
           ),
-          Divider(height: 32, thickness: 1),
-          SizedBox(height: 16),
+          const Divider(height: 32, thickness: 1),
+          const SizedBox(height: 16),
 
           Text(
-            "SSJC-ADARSA CAMPUS",
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            _branchName,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
 
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
 
           Text(
-            "Total Paid: ₹16,500",
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            "Total Paid: ₹${_totalPaid.toStringAsFixed(0)}",
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
         ],
       ),

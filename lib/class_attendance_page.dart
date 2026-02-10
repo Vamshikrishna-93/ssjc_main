@@ -1,9 +1,13 @@
-import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:student_app/studentdrawer.dart';
 import 'package:student_app/theme_controller.dart';
-import 'dart:math' as math;
+
 import 'attendence_month_details_page.dart';
+import 'package:student_app/services/attendance_service.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class AttendancePage extends StatefulWidget {
   const AttendancePage({super.key});
@@ -16,120 +20,20 @@ class _AttendancePageState extends State<AttendancePage> {
   String selectedPeriod = "All Months";
   int currentPage = 1;
   final int itemsPerPage = 10;
+  bool _isLoading = true;
 
-  // Sample data
-  final double overallAttendance = 94.1;
-  final int daysAttended = 111;
-  final int totalDays = 118;
-  final int daysAbsent = 7;
-  final int currentStreak = 8;
-  final int bestStreak = 69;
-  final int leavesTaken = 0;
-  final int leavesRemaining = 15;
+  // Dynamic data
+  double overallAttendance = 0.0;
+  int daysAttended = 0;
+  int totalDays = 0;
+  int daysAbsent = 0;
+  int currentStreak = 0;
+  int bestStreak = 0;
+  int leavesTaken = 0;
+  int leavesRemaining = 0;
 
-  final List<Map<String, dynamic>> monthlyData = [
-    {
-      'month': 'Jun 25',
-      'attended': 1,
-      'total': 1,
-      'present': 1,
-      'absent': 0,
-      'leaves': 0,
-      'percentage': 100.0,
-    },
-    {
-      'month': 'Jul 25',
-      'attended': 14,
-      'total': 14,
-      'present': 14,
-      'absent': 0,
-      'leaves': 0,
-      'percentage': 100.0,
-    },
-    {
-      'month': 'Aug 25',
-      'attended': 29,
-      'total': 29,
-      'present': 29,
-      'absent': 0,
-      'leaves': 0,
-      'percentage': 100.0,
-    },
-    {
-      'month': 'Sep 25',
-      'attended': 26,
-      'total': 27,
-      'present': 26,
-      'absent': 1,
-      'leaves': 0,
-      'percentage': 96.3,
-    },
-    {
-      'month': 'Oct 25',
-      'attended': 22,
-      'total': 26,
-      'present': 22,
-      'absent': 4,
-      'leaves': 0,
-      'percentage': 84.6,
-    },
-    {
-      'month': 'Nov 25',
-      'attended': 19,
-      'total': 21,
-      'present': 19,
-      'absent': 2,
-      'leaves': 0,
-      'percentage': 90.5,
-    },
-    {
-      'month': 'Dec 25',
-      'attended': 0,
-      'total': 0,
-      'present': 0,
-      'absent': 0,
-      'leaves': 0,
-      'percentage': 0.0,
-    },
-    {
-      'month': 'Jan 26',
-      'attended': 0,
-      'total': 0,
-      'present': 0,
-      'absent': 0,
-      'leaves': 0,
-      'percentage': 0.0,
-    },
-    {
-      'month': 'Feb 26',
-      'attended': 0,
-      'total': 0,
-      'present': 0,
-      'absent': 0,
-      'leaves': 0,
-      'percentage': 0.0,
-    },
-    {
-      'month': 'Mar 26',
-      'attended': 0,
-      'total': 0,
-      'present': 0,
-      'absent': 0,
-      'leaves': 0,
-      'percentage': 0.0,
-    },
-    {
-      'month': 'Apr 26',
-      'attended': 0,
-      'total': 0,
-      'present': 0,
-      'absent': 0,
-      'leaves': 0,
-      'percentage': 0.0,
-    },
-  ];
-
-  final List<double> trendData = [100.0, 100.0, 100.0, 96.3, 84.6, 90.5, 85.0];
+  List<Map<String, dynamic>> monthlyData = [];
+  List<double> trendData = [];
 
   final ScrollController _horizontalScrollController = ScrollController();
   double _maxScrollExtent = 0.0;
@@ -139,6 +43,7 @@ class _AttendancePageState extends State<AttendancePage> {
   void initState() {
     super.initState();
     _horizontalScrollController.addListener(_updateScrollMetrics);
+    _fetchAttendanceData();
   }
 
   @override
@@ -152,6 +57,108 @@ class _AttendancePageState extends State<AttendancePage> {
       _maxScrollExtent = _horizontalScrollController.position.maxScrollExtent;
       _scrollPosition = _horizontalScrollController.position.pixels;
     });
+  }
+
+  Future<void> _fetchAttendanceData() async {
+    try {
+      final responseData = await AttendanceService.getAttendance();
+
+      if (mounted) {
+        setState(() {
+          final data = responseData.containsKey('data')
+              ? responseData['data']
+              : responseData;
+
+          if (data is Map<String, dynamic>) {
+            if (data.containsKey('overallAttendance') ||
+                data.containsKey('present_days')) {
+              overallAttendance =
+                  (data['overallAttendance'] ??
+                          data['attendance_percentage'] ??
+                          0.0)
+                      .toDouble();
+              daysAttended = data['daysAttended'] ?? data['present_days'] ?? 0;
+              totalDays = data['totalDays'] ?? data['total_working_days'] ?? 0;
+              daysAbsent = data['daysAbsent'] ?? data['absent_days'] ?? 0;
+              currentStreak = data['currentStreak'] ?? 0;
+              bestStreak = data['bestStreak'] ?? 0;
+              leavesTaken = data['leavesTaken'] ?? data['leave_days'] ?? 0;
+              leavesRemaining = data['leavesRemaining'] ?? 0;
+            }
+
+            var mData = data['monthlyData'] ?? data['months'];
+            if (mData != null && mData is List) {
+              monthlyData = mData
+                  .map<Map<String, dynamic>>((m) => _normalizeMonthData(m))
+                  .toList();
+            }
+
+            if (data['trendData'] != null) {
+              trendData = List<double>.from(
+                data['trendData'].map((x) => x.toDouble()),
+              );
+            }
+          } else if (data is List) {
+            monthlyData = data
+                .map<Map<String, dynamic>>((m) => _normalizeMonthData(m))
+                .toList();
+          }
+
+          if (totalDays == 0 && monthlyData.isNotEmpty) {
+            _calculateStats();
+          }
+
+          if (trendData.isEmpty && monthlyData.isNotEmpty) {
+            trendData = monthlyData
+                .map((m) => (m['percentage'] as num).toDouble())
+                .toList();
+          }
+
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching data: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Map<String, dynamic> _normalizeMonthData(dynamic m) {
+    return {
+      'month': m['month'] ?? m['month_name'] ?? '',
+      'attended': m['attended'] ?? m['present_days'] ?? m['present'] ?? 0,
+      'total': m['total'] ?? m['total_working_days'] ?? m['total_days'] ?? 0,
+      'present': m['present'] ?? m['present_days'] ?? 0,
+      'absent': m['absent'] ?? m['absent_days'] ?? 0,
+      'leaves': m['leaves'] ?? m['leave_days'] ?? 0,
+      'percentage': (m['percentage'] ?? m['attendance_percentage'] ?? 0.0)
+          .toDouble(),
+      'details':
+          m['details'] ??
+          m['attendance_details'] ??
+          m['day_wise_details'] ??
+          [],
+    };
+  }
+
+  void _calculateStats() {
+    int p = 0;
+    int t = 0;
+    int a = 0;
+    int l = 0;
+    for (var m in monthlyData) {
+      p += (m['present'] as int);
+      t += (m['total'] as int);
+      a += (m['absent'] as int);
+      l += (m['leaves'] as int);
+    }
+    daysAttended = p;
+    totalDays = t;
+    daysAbsent = a;
+    leavesTaken = l;
+    if (t > 0) {
+      overallAttendance = double.parse(((p / t) * 100).toStringAsFixed(1));
+    }
   }
 
   @override
@@ -224,58 +231,60 @@ class _AttendancePageState extends State<AttendancePage> {
           ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 600;
-          final padding = isMobile ? 12.0 : 16.0;
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 600;
+                final padding = isMobile ? 12.0 : 16.0;
 
-          return SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.all(padding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Attendance Dashboard Header Card
-                  _buildDashboardHeader(isMobile),
-                  SizedBox(height: isMobile ? 12 : 16),
+                return SingleChildScrollView(
+                  child: Padding(
+                    padding: EdgeInsets.all(padding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Attendance Dashboard Header Card
+                        _buildDashboardHeader(isMobile),
+                        SizedBox(height: isMobile ? 12 : 16),
 
-                  // Overall Attendance Card
-                  _buildOverallAttendanceCard(isMobile),
-                  SizedBox(height: isMobile ? 12 : 16),
+                        // Overall Attendance Card
+                        _buildOverallAttendanceCard(isMobile),
+                        SizedBox(height: isMobile ? 12 : 16),
 
-                  // Days Attended Card
-                  _buildDaysAttendedCard(isMobile),
-                  SizedBox(height: isMobile ? 12 : 16),
+                        // Days Attended Card
+                        _buildDaysAttendedCard(isMobile),
+                        SizedBox(height: isMobile ? 12 : 16),
 
-                  // Current Streak Card
-                  _buildCurrentStreakCard(isMobile),
-                  SizedBox(height: isMobile ? 12 : 16),
+                        // Current Streak Card
+                        _buildCurrentStreakCard(isMobile),
+                        SizedBox(height: isMobile ? 12 : 16),
 
-                  // Leaves Taken Card
-                  _buildLeavesTakenCard(isMobile),
-                  SizedBox(height: isMobile ? 12 : 16),
+                        // Leaves Taken Card
+                        _buildLeavesTakenCard(isMobile),
+                        SizedBox(height: isMobile ? 12 : 16),
 
-                  // Attendance Trend Card
-                  _buildAttendanceTrendCard(isMobile),
-                  SizedBox(height: isMobile ? 12 : 16),
+                        // Attendance Trend Card
+                        _buildAttendanceTrendCard(isMobile),
+                        SizedBox(height: isMobile ? 12 : 16),
 
-                  // Performance Summary Card
-                  _buildPerformanceSummaryCard(isMobile),
-                  SizedBox(height: isMobile ? 12 : 16),
+                        // Performance Summary Card
+                        _buildPerformanceSummaryCard(isMobile),
+                        SizedBox(height: isMobile ? 12 : 16),
 
-                  // Monthly Attendance Overview Card
-                  _buildMonthlyOverviewCard(isMobile),
-                  SizedBox(height: isMobile ? 12 : 16),
+                        // Monthly Attendance Overview Card
+                        _buildMonthlyOverviewCard(isMobile),
+                        SizedBox(height: isMobile ? 12 : 16),
 
-                  // Recent Activity Card
-                  _buildRecentActivityCard(isMobile),
-                  SizedBox(height: isMobile ? 12 : 16),
-                ],
-              ),
+                        // Recent Activity Card
+                        _buildRecentActivityCard(isMobile),
+                        SizedBox(height: isMobile ? 12 : 16),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 

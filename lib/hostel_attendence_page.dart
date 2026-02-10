@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:student_app/studentdrawer.dart';
 import 'package:student_app/theme_controller.dart';
 import 'package:student_app/hostel_month_detail_page.dart';
+import 'package:student_app/services/hostel_attendance_service.dart';
 import 'dart:math' as math;
 
 class HostelAttendancePage extends StatefulWidget {
@@ -20,165 +21,102 @@ class _HostelAttendancePageState extends State<HostelAttendancePage> {
   double _scrollPosition = 0.0;
   double _maxScrollExtent = 0.0;
 
-  final double overallAttendance = 83.9;
-  final int nightsInHostel = 47;
-  final int totalNights = 56;
-  final int nightsAbsent = 0;
-  final int currentStreak = 5;
-  final int bestStreak = 19;
-  final int leavesTaken = 0;
-  final int nightOuts = 0;
+  bool _isLoading = true;
+  double overallAttendance = 0.0;
+  int nightsInHostel = 0;
+  int totalNights = 0;
+  int nightsAbsent = 0;
+  int currentStreak = 0;
+  int bestStreak = 0;
+  int leavesTaken = 0;
+  int nightOuts = 0;
 
   // Hostel details
-  final String hostelName = "ADARSA";
-  final String floor = "2ND FLOOR A&B BLOCKS";
-  final String room = "B-204";
-  final String warden = "JENNIPOGU ABHI RAM";
+  // Hostel details
+  String hostelName = "ADARSA";
+  String floor = "2ND FLOOR A&B BLOCKS";
+  String room = "B-204";
+  String warden = "JENNIPOGU ABHI RAM";
 
-  final List<Map<String, dynamic>> monthlyData = [
-    {
-      'month': 'Jun 25',
-      'attended': 0,
-      'total': 0,
-      'present': 0,
-      'absent': 0,
-      'leaves': 0,
-      'holidays': 0,
-      'nightOuts': 0,
-      'percentage': 0.0,
-      'status': 'Poor',
-    },
-    {
-      'month': 'Jul 25',
-      'attended': 0,
-      'total': 0,
-      'present': 0,
-      'absent': 0,
-      'leaves': 0,
-      'holidays': 0,
-      'nightOuts': 0,
-      'percentage': 0.0,
-      'status': 'Poor',
-    },
-    {
-      'month': 'Aug 25',
-      'attended': 1,
-      'total': 1,
-      'present': 1,
-      'absent': 0,
-      'leaves': 0,
-      'holidays': 0,
-      'nightOuts': 0,
-      'percentage': 100.0,
-      'status': 'Excellent',
-    },
-    {
-      'month': 'Sep 25',
-      'attended': 16,
-      'total': 19,
-      'present': 16,
-      'absent': 0,
-      'leaves': 1,
-      'holidays': 0,
-      'nightOuts': 0,
-      'percentage': 84.2,
-      'status': 'Average',
-    },
-    {
-      'month': 'Oct 25',
-      'attended': 19,
-      'total': 23,
-      'present': 19,
-      'absent': 0,
-      'leaves': 0,
-      'holidays': 0,
-      'nightOuts': 0,
-      'percentage': 82.6,
-      'status': 'Average',
-    },
-    {
-      'month': 'Nov 25',
-      'attended': 11,
-      'total': 13,
-      'present': 11,
-      'absent': 0,
-      'leaves': 0,
-      'holidays': 0,
-      'nightOuts': 0,
-      'percentage': 84.6,
-      'status': 'Average',
-    },
-    {
-      'month': 'Dec 25',
-      'attended': 0,
-      'total': 0,
-      'present': 0,
-      'absent': 0,
-      'leaves': 0,
-      'holidays': 0,
-      'nightOuts': 0,
-      'percentage': 0.0,
-      'status': 'Poor',
-    },
-    {
-      'month': 'Jan 26',
-      'attended': 0,
-      'total': 0,
-      'present': 0,
-      'absent': 0,
-      'leaves': 0,
-      'holidays': 0,
-      'nightOuts': 0,
-      'percentage': 0.0,
-      'status': 'Poor',
-    },
-    {
-      'month': 'Feb 26',
-      'attended': 0,
-      'total': 0,
-      'present': 0,
-      'absent': 0,
-      'leaves': 0,
-      'holidays': 0,
-      'nightOuts': 0,
-      'percentage': 0.0,
-      'status': 'Poor',
-    },
-    {
-      'month': 'Mar 26',
-      'attended': 0,
-      'total': 0,
-      'present': 0,
-      'absent': 0,
-      'leaves': 0,
-      'holidays': 0,
-      'nightOuts': 0,
-      'percentage': 0.0,
-      'status': 'Poor',
-    },
-    {
-      'month': 'Apr 26',
-      'attended': 0,
-      'total': 0,
-      'present': 0,
-      'absent': 0,
-      'leaves': 0,
-      'holidays': 0,
-      'nightOuts': 0,
-      'percentage': 0.0,
-      'status': 'Poor',
-    },
-  ];
+  List<Map<String, dynamic>> _monthlyData = [];
 
-  final List<double> trendData = [100.0, 84.2, 82.6, 84.6];
+  final List<double> trendData = [];
 
   @override
   void initState() {
     super.initState();
     _horizontalScrollController.addListener(_updateScrollPosition);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateScrollPosition();
+      _fetchAttendance();
     });
+  }
+
+  Future<void> _fetchAttendance() async {
+    setState(() => _isLoading = true);
+    try {
+      final dataMap = await HostelAttendanceService.getHostelAttendance();
+      if (mounted) {
+        setState(() {
+          // Parse data assuming the structure matches the one expected
+          // The API response structure needs to be mapped. 
+          // Assuming 'data' contains the main object
+          final data = dataMap['data'] ?? dataMap;
+          
+          if (data is Map<String, dynamic>) {
+            hostelName = data['hostel_name'] ?? hostelName;
+            floor = data['floor_name'] ?? floor;
+            room = data['room_name'] ?? room;
+            warden = data['warden_name'] ?? warden;
+
+            overallAttendance = double.tryParse(data['overall_percentage']?.toString() ?? '0') ?? 0.0;
+            nightsInHostel = int.tryParse(data['total_present']?.toString() ?? '0') ?? 0;
+            totalNights = int.tryParse(data['total_days']?.toString() ?? '0') ?? 0;
+            nightsAbsent = int.tryParse(data['total_absent']?.toString() ?? '0') ?? 0;
+            leavesTaken = int.tryParse(data['total_leaves']?.toString() ?? '0') ?? 0;
+            nightOuts = int.tryParse(data['total_night_outs']?.toString() ?? '0') ?? 0;
+            currentStreak = int.tryParse(data['current_streak']?.toString() ?? '0') ?? 0;
+            bestStreak = int.tryParse(data['best_streak']?.toString() ?? '0') ?? 0;
+
+            final monthly = data['monthly_data'];
+            if (monthly is List) {
+              _monthlyData = monthly.map<Map<String, dynamic>>((e) {
+                // Ensure we pass all necessary fields including details
+                 return {
+                   'month': e['month_name'] ?? e['month'] ?? '',
+                   'attended': e['present'] ?? 0,
+                   'total': e['total'] ?? 0,
+                   'present': e['present'] ?? 0,
+                   'absent': e['absent'] ?? 0,
+                   'leaves': e['leaves'] ?? 0,
+                   'holidays': e['holidays'] ?? 0,
+                   'nightOuts': e['nightOuts'] ?? 0,
+                   'percentage': double.tryParse(e['percentage']?.toString() ?? '0') ?? 0.0,
+                   'status': e['status'] ?? 'Average',
+                   'hostel_name': hostelName,
+                   'floor_name': floor,
+                   'room_name': room,
+                   'warden_name': warden,
+                   'details': e['details'] ?? [], 
+                 };
+              }).toList();
+              
+              trendData.clear();
+              for(var m in _monthlyData) {
+                 final p = double.tryParse(m['percentage']?.toString() ?? '0') ?? 0.0;
+                 if (p > 0) trendData.add(p);
+              }
+            }
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        // Optionally show error
+        print("Error fetching attendance: $e");
+      }
+    }
   }
 
   void _updateScrollPosition() {
@@ -1480,10 +1418,17 @@ class _HostelAttendancePageState extends State<HostelAttendancePage> {
   }
 
   Widget _buildMonthlyOverviewCard(bool isMobile) {
+    if (_monthlyData.isEmpty) {
+        return Container(
+            padding: const EdgeInsets.all(24),
+            child: const Center(child: Text("No monthly data available")),
+        );
+    }
+
     final startIndex = (currentPage - 1) * itemsPerPage;
-    final endIndex = math.min(startIndex + itemsPerPage, monthlyData.length);
-    final currentData = monthlyData.sublist(startIndex, endIndex);
-    final totalPages = (monthlyData.length / itemsPerPage).ceil();
+    final endIndex = math.min(startIndex + itemsPerPage, _monthlyData.length);
+    final currentItems = _monthlyData.sublist(startIndex, endIndex);
+    final totalPages = (_monthlyData.length / itemsPerPage).ceil();
 
     return Container(
       width: double.infinity,
@@ -1634,7 +1579,7 @@ class _HostelAttendancePageState extends State<HostelAttendancePage> {
                 ),
           SizedBox(height: isMobile ? 6 : 8),
           Text(
-            'Showing ${monthlyData.length} months of hostel attendance data.',
+            'Showing ${_monthlyData.length} months of hostel attendance data.',
             style: TextStyle(
               fontSize: isMobile ? 11 : 12,
               color: const Color(0xFF64748B),
@@ -1794,7 +1739,7 @@ class _HostelAttendancePageState extends State<HostelAttendancePage> {
                       ),
                     ),
                     // Table Rows
-                    ...currentData.map(
+                    ...currentItems.map(
                       (data) => _buildMonthlyRow(data, isMobile),
                     ),
                   ],
@@ -1804,6 +1749,7 @@ class _HostelAttendancePageState extends State<HostelAttendancePage> {
           ),
           SizedBox(height: isMobile ? 12 : 16),
           // Pagination
+          if (totalPages > 1)
           isMobile
               ? Column(
                   children: [
@@ -1826,7 +1772,7 @@ class _HostelAttendancePageState extends State<HostelAttendancePage> {
                               : const Color(0xFF94A3B8),
                         ),
                         Text(
-                          '${startIndex + 1}-${endIndex} of ${monthlyData.length} months',
+                          '${startIndex + 1}-${endIndex} of ${_monthlyData.length} months',
                           style: const TextStyle(
                             fontSize: 11,
                             color: Color(0xFF64748B),
@@ -1899,7 +1845,7 @@ class _HostelAttendancePageState extends State<HostelAttendancePage> {
                           : const Color(0xFF94A3B8),
                     ),
                     Text(
-                      '${startIndex + 1}-${endIndex} of ${monthlyData.length} months',
+                      '${startIndex + 1}-${endIndex} of ${_monthlyData.length} months',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF64748B),

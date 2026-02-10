@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:student_app/services/documents_service.dart';
 import 'package:student_app/studentdrawer.dart';
 import 'package:student_app/theme_controller.dart';
 import 'package:student_app/upload_document_dialog.dart';
@@ -14,10 +15,15 @@ class _DocumentsPageState extends State<DocumentsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<dynamic> _documents = [];
+
   int totalDocs = 0;
   int verifiedDocs = 0;
   int pendingDocs = 0;
   int rejectedDocs = 0;
+  DateTime? _lastUpdated;
 
   String selectedCategory = "Financial";
 
@@ -34,6 +40,52 @@ class _DocumentsPageState extends State<DocumentsPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final data = await DocumentsService.getDocuments();
+      if (mounted) {
+        setState(() {
+          if (data['data'] is List) {
+            _documents = data['data'];
+          } else {
+            _documents = [];
+          }
+
+          // Update stats based on fetched data
+          totalDocs = _documents.length;
+          verifiedDocs = _documents
+              .where(
+                (d) =>
+                    d['status'].toString().toLowerCase() == 'approved' ||
+                    d['status'].toString().toLowerCase() == 'verified',
+              )
+              .length;
+          pendingDocs = _documents
+              .where((d) => d['status'].toString().toLowerCase() == 'pending')
+              .length;
+          rejectedDocs = _documents
+              .where((d) => d['status'].toString().toLowerCase() == 'rejected')
+              .length;
+
+          _lastUpdated = DateTime.now();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   // ================= COLORS (THEME AWARE) =================
@@ -61,9 +113,7 @@ class _DocumentsPageState extends State<DocumentsPage>
   // ================= ACTIONS =================
 
   void _refreshData() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Documents refreshed")));
+    _fetchData();
   }
 
   double get verificationProgress =>
@@ -141,48 +191,67 @@ class _DocumentsPageState extends State<DocumentsPage>
           ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _header(),
-              const SizedBox(height: 24),
-              _statCard(
-                title: "Total Documents",
-                count: totalDocs,
-                icon: Icons.folder_outlined,
-                color: const Color(0xFF2563EB),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text("Error: $_errorMessage"),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _fetchData,
+                    child: const Text("Retry"),
+                  ),
+                ],
               ),
-              _statCard(
-                title: "Verified",
-                count: verifiedDocs,
-                icon: Icons.check_circle_outline,
-                color: const Color(0xFF22C55E),
+            )
+          : SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _header(),
+                    const SizedBox(height: 24),
+                    _statCard(
+                      title: "Total Documents",
+                      count: totalDocs,
+                      icon: Icons.folder_outlined,
+                      color: const Color(0xFF2563EB),
+                    ),
+                    _statCard(
+                      title: "Verified",
+                      count: verifiedDocs,
+                      icon: Icons.check_circle_outline,
+                      color: const Color(0xFF22C55E),
+                    ),
+                    _statCard(
+                      title: "Pending",
+                      count: pendingDocs,
+                      icon: Icons.access_time,
+                      color: const Color(0xFFF59E0B),
+                    ),
+                    _statCard(
+                      title: "Rejected",
+                      count: rejectedDocs,
+                      icon: Icons.warning_amber_rounded,
+                      color: const Color(0xFFEF4444),
+                    ),
+                    const SizedBox(height: 28),
+                    _tabsSection(),
+                    const SizedBox(height: 28),
+                    _categoriesSection(),
+                    const SizedBox(height: 28),
+                    _verificationProgress(),
+                  ],
+                ),
               ),
-              _statCard(
-                title: "Pending",
-                count: pendingDocs,
-                icon: Icons.access_time,
-                color: const Color(0xFFF59E0B),
-              ),
-              _statCard(
-                title: "Rejected",
-                count: rejectedDocs,
-                icon: Icons.warning_amber_rounded,
-                color: const Color(0xFFEF4444),
-              ),
-              const SizedBox(height: 28),
-              _tabsSection(),
-              const SizedBox(height: 28),
-              _categoriesSection(),
-              const SizedBox(height: 28),
-              _verificationProgress(),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 
@@ -352,7 +421,17 @@ class _DocumentsPageState extends State<DocumentsPage>
             height: 120,
             child: TabBarView(
               controller: _tabController,
-              children: [_emptyState(), _emptyState()],
+              children: [
+                _documentList(_documents),
+                _documentList(
+                  _documents
+                      .where(
+                        (d) =>
+                            d['status'].toString().toLowerCase() == 'pending',
+                      )
+                      .toList(),
+                ),
+              ],
             ),
           ),
         ],
@@ -371,6 +450,104 @@ class _DocumentsPageState extends State<DocumentsPage>
           style: TextStyle(fontSize: 14, color: textSecondary),
         ),
       ],
+    );
+  }
+
+  Widget _documentList(List<dynamic> docs) {
+    if (docs.isEmpty) return _emptyState();
+
+    return ListView.builder(
+      itemCount: docs.length,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      itemBuilder: (context, index) {
+        final doc = docs[index];
+        // Handle dynamic keys (fallback for outings vs documents)
+        final title =
+            doc['document_name'] ??
+            doc['outing_type'] ??
+            doc['reason'] ??
+            'Document';
+        final date =
+            doc['created_at'] ?? doc['date'] ?? doc['out_time'] ?? 'N/A';
+        final status = doc['status']?.toString() ?? 'Pending';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: card,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.description_outlined,
+                  color: Color(0xFF2563EB),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      date,
+                      style: TextStyle(fontSize: 12, color: textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              _statusBadge(status),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _statusBadge(String status) {
+    Color color;
+    switch (status.toLowerCase()) {
+      case 'approved':
+      case 'verified':
+        color = const Color(0xFF22C55E);
+        break;
+      case 'rejected':
+        color = const Color(0xFFEF4444);
+        break;
+      default:
+        color = const Color(0xFFF59E0B);
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 
@@ -518,7 +695,7 @@ class _DocumentsPageState extends State<DocumentsPage>
 
                 // LAST UPDATED
                 Text(
-                  "Last updated: 11/1/2026",
+                  "Last updated: ${_lastUpdated != null ? "${_lastUpdated!.day}/${_lastUpdated!.month}/${_lastUpdated!.year} ${_lastUpdated!.hour}:${_lastUpdated!.minute.toString().padLeft(2, '0')}" : "Never"}",
                   style: TextStyle(fontSize: 12, color: textSecondary),
                 ),
               ],

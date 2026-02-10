@@ -20,82 +20,24 @@ class _AttendanceMonthDetailPageState extends State<AttendanceMonthDetailPage> {
   final ScrollController _verticalScrollController = ScrollController();
 
   List<Map<String, dynamic>> get attendanceDetails {
-    // Generate attendance details from month data based on percentage
-    final monthData = widget.monthData;
-    final int presentDays = monthData['present'] ?? 0;
-    final int absentDays = monthData['absent'] ?? 0;
-    final int leaveDays = monthData['leaves'] ?? 0;
-    final int totalDays = monthData['total'] ?? 0;
+    // Extract details from the month data
+    final details =
+        widget.monthData['details'] ??
+        widget.monthData['attendance_details'] ??
+        [];
 
-    if (totalDays == 0) {
-      return [];
-    }
+    if (details is! List) return [];
 
-    // Generate sample attendance records based on the data
-    List<Map<String, dynamic>> details = [];
-
-    // Generate present days
-    for (int i = 1; i <= presentDays && details.length < 30; i++) {
-      details.add({
-        'date': '$i ${_getDayName(i)}',
-        'checkType': 'Class Attendance',
-        'time': 'Morning Session',
-        'instructor': 'Class Teacher',
-        'status': 'Present',
-        'remark': 'Attended class',
-      });
-    }
-
-    // Generate absent days
-    int absentCount = 0;
-    for (
-      int i = presentDays + 1;
-      absentCount < absentDays && details.length < 30 && i <= totalDays;
-      i++
-    ) {
-      details.add({
-        'date': '$i ${_getDayName(i)}',
-        'checkType': 'Class Attendance',
-        'time': 'Morning Session',
-        'instructor': 'Class Teacher',
-        'status': 'Absent',
-        'remark': 'Not present',
-      });
-      absentCount++;
-    }
-
-    // Generate leave days
-    int leaveCount = 0;
-    for (
-      int i = presentDays + absentDays + 1;
-      leaveCount < leaveDays && details.length < 30 && i <= totalDays;
-      i++
-    ) {
-      details.add({
-        'date': '$i ${_getDayName(i)}',
-        'checkType': 'Class Attendance',
-        'time': 'Morning Session',
-        'instructor': 'Class Teacher',
-        'status': 'Leave',
-        'remark': 'On leave',
-      });
-      leaveCount++;
-    }
-
-    return details;
-  }
-
-  String _getDayName(int day) {
-    final days = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
-    ];
-    return days[(day - 1) % 7];
+    return details.map<Map<String, dynamic>>((d) {
+      return {
+        'date': d['attendance_date'] ?? d['date'] ?? '',
+        'checkType': d['check_type'] ?? 'Class Attendance',
+        'time': d['time'] ?? d['in_time'] ?? '',
+        'instructor': d['instructor'] ?? d['faculty'] ?? '',
+        'status': d['status'] ?? '',
+        'remark': d['remarks'] ?? d['remark'] ?? '',
+      };
+    }).toList();
   }
 
   @override

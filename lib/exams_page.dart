@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:student_app/exam_writing_page.dart';
+import 'package:student_app/services/attendance_service.dart';
+import 'package:student_app/services/exams_service.dart';
 import 'package:student_app/studentdrawer.dart';
 import 'package:student_app/theme_controller.dart';
 
@@ -13,10 +16,82 @@ class _ExamsPageState extends State<ExamsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<dynamic> _onlineExams = [];
+
+  // Stats
+  int _upcomingCount = 0;
+  int _completedCount = 0;
+  String _avgScore = "N/A";
+  Map<String, dynamic> _attendanceData = {};
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    _fetchExams();
+  }
+
+  Future<void> _fetchExams() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final data = await ExamsService.getOnlineExams();
+      final summary = await AttendanceService.getAttendanceSummary();
+      if (mounted) {
+        setState(() {
+          _onlineExams = data;
+          _attendanceData = summary;
+          final now = DateTime.now();
+          _upcomingCount = _onlineExams.where((e) {
+            if (e is! Map) return false;
+            final date = DateTime.tryParse(
+              (e['start_date'] ?? e['date'] ?? '').toString(),
+            );
+            return date != null && date.isAfter(now);
+          }).length;
+          _completedCount =
+              _onlineExams.length - _upcomingCount; // Simplified logic
+
+          // Calculate Avg Score dynamically
+          double totalMarks = 0;
+          double obtainedMarks = 0;
+          int scoredCount = 0;
+
+          for (var exam in _onlineExams) {
+            if (exam is! Map) continue;
+            final obtained = double.tryParse(
+              exam['marks_obtained']?.toString() ?? '',
+            );
+            final total = double.tryParse(
+              exam['total_marks']?.toString() ?? '',
+            );
+
+            if (obtained != null && total != null && total > 0) {
+              obtainedMarks += obtained;
+              totalMarks += total;
+              scoredCount++;
+            }
+          }
+
+          _avgScore = (scoredCount > 0 && totalMarks > 0)
+              ? "${((obtainedMarks / totalMarks) * 100).toStringAsFixed(1)}%"
+              : "N/A";
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -137,7 +212,7 @@ class _ExamsPageState extends State<ExamsPage>
                       _OutlinedBtn(
                         icon: Icons.refresh,
                         label: "Refresh",
-                        onTap: () {},
+                        onTap: _fetchExams,
                         theme: theme,
                       ),
                       _PrimaryBtn(
@@ -156,7 +231,7 @@ class _ExamsPageState extends State<ExamsPage>
               // ---------------- STATS ----------------
               _StatCard(
                 title: "Upcoming Exams",
-                value: "0",
+                value: _upcomingCount.toString(),
                 subtitle: null,
                 icon: Icons.calendar_today,
                 color: colorScheme.primary,
@@ -165,8 +240,8 @@ class _ExamsPageState extends State<ExamsPage>
               const SizedBox(height: 16),
               _StatCard(
                 title: "Avg. Score",
-                value: "0.0%",
-                subtitle: "Based on 0 completed exams",
+                value: _avgScore,
+                subtitle: "Based on $_completedCount completed exams",
                 icon: Icons.emoji_events_outlined,
                 color: colorScheme.error,
                 theme: theme,
@@ -174,8 +249,8 @@ class _ExamsPageState extends State<ExamsPage>
               const SizedBox(height: 16),
               _StatCard(
                 title: "Class Rank",
-                value: "30 / 85",
-                subtitle: "Top 30 of the class",
+                value: _attendanceData['overall_rank']?.toString() ?? "N/A",
+                subtitle: _attendanceData['overall_rank'] != null ? "Top ${_attendanceData['overall_rank']} of the class" : "Rank not available",
                 icon: Icons.emoji_events,
                 color: colorScheme.secondary,
                 theme: theme,
@@ -183,8 +258,8 @@ class _ExamsPageState extends State<ExamsPage>
               const SizedBox(height: 16),
               _StatCard(
                 title: "Study Hours",
-                value: "0 hrs",
-                subtitle: "Recommended for upcoming exams",
+                value: "N/A",
+                subtitle: "Sync with your study planner",
                 icon: Icons.access_time,
                 color: colorScheme.tertiary,
                 theme: theme,
@@ -215,31 +290,31 @@ class _ExamsPageState extends State<ExamsPage>
                             tabs: const [
                               Tab(
                                 icon: Icon(Icons.calendar_today, size: 18),
-                                text: "Upcoming Exams",
+                                text: "Upcoming",
                               ),
                               Tab(
                                 icon: Icon(
                                   Icons.check_circle_outline,
                                   size: 18,
                                 ),
-                                text: "Completed Exams",
+                                text: "Completed",
                               ),
                               Tab(
-                                icon: Icon(Icons.upcoming, size: 18),
-                                text: "Upcoming Exams",
+                                icon: Icon(Icons.list_alt, size: 18),
+                                text: "All Exams",
                               ),
                               Tab(
                                 icon: Icon(Icons.computer, size: 18),
-                                text: "Online Exam",
+                                text: "Online",
                               ),
                               Tab(
                                 icon: Icon(Icons.school, size: 18),
-                                text: "Offline Exam",
+                                text: "Offline",
                               ),
                             ],
                           ),
                         ),
-                        PopupMenuButton(
+                        PopupMenuButton<int>(
                           icon: Icon(
                             Icons.more_horiz,
                             color: textTheme.bodyLarge?.color,
@@ -247,23 +322,29 @@ class _ExamsPageState extends State<ExamsPage>
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          onSelected: (index) {
+                            _tabController.animateTo(index);
+                          },
                           itemBuilder: (_) => const [
                             PopupMenuItem(
+                              value: 0,
                               child: _MenuItem(
                                 icon: Icons.calendar_today,
-                                label: "Upcoming Exams",
+                                label: "Upcoming",
                               ),
                             ),
                             PopupMenuItem(
+                              value: 3,
                               child: _MenuItem(
                                 icon: Icons.computer,
-                                label: "Online Exam",
+                                label: "Online",
                               ),
                             ),
                             PopupMenuItem(
+                              value: 4,
                               child: _MenuItem(
                                 icon: Icons.school,
-                                label: "Offline Exam",
+                                label: "Offline",
                               ),
                             ),
                           ],
@@ -276,32 +357,58 @@ class _ExamsPageState extends State<ExamsPage>
                     // TAB CONTENT
                     SizedBox(
                       height: 220,
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: const [
-                          _EmptyState(
-                            icon: Icons.calendar_today,
-                            text: "No upcoming exams",
-                          ),
+                      child: _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _errorMessage != null
+                          ? Center(child: Text("Error: $_errorMessage"))
+                          : TabBarView(
+                              controller: _tabController,
+                              children: [
+                                // Upcoming
+                                _buildExamList(
+                                  _onlineExams.where((e) {
+                                    if (e is! Map<String, dynamic>)
+                                      return false;
+                                    final rawDate =
+                                        e['start_date'] ?? e['date'];
+                                    final date = DateTime.tryParse(
+                                      rawDate?.toString() ?? '',
+                                    );
+                                    return date != null &&
+                                        date.isAfter(DateTime.now());
+                                  }).toList(),
+                                  "No upcoming exams",
+                                ),
 
-                          _EmptyState(
-                            icon: Icons.check_circle_outline,
-                            text: "No completed exams",
-                          ),
-                          _EmptyState(
-                            icon: Icons.upcoming,
-                            text: "No Upcompleted exams",
-                          ),
-                          _EmptyState(
-                            icon: Icons.computer,
-                            text: "No online exams",
-                          ),
-                          _EmptyState(
-                            icon: Icons.school,
-                            text: "No offline exams",
-                          ),
-                        ],
-                      ),
+                                // Completed
+                                _buildExamList(
+                                  _onlineExams.where((e) {
+                                    if (e is! Map<String, dynamic>)
+                                      return false;
+                                    final rawDate =
+                                        e['start_date'] ?? e['date'];
+                                    final date = DateTime.tryParse(
+                                      rawDate?.toString() ?? '',
+                                    );
+                                    return date != null &&
+                                        date.isBefore(DateTime.now());
+                                  }).toList(),
+                                  "No completed exams",
+                                ),
+
+                                // All
+                                _buildExamList(_onlineExams, "No exams found"),
+
+                                // Online
+                                _buildExamList(_onlineExams, "No online exams"),
+
+                                // Offline
+                                const _EmptyState(
+                                  icon: Icons.school,
+                                  text: "No offline exams",
+                                ),
+                              ],
+                            ),
                     ),
                   ],
                 ),
@@ -310,6 +417,79 @@ class _ExamsPageState extends State<ExamsPage>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildExamList(List<dynamic> exams, String emptyText) {
+    if (exams.isEmpty) {
+      return _EmptyState(icon: Icons.event_busy, text: emptyText);
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: exams.length,
+      itemBuilder: (context, index) {
+        final exam = exams[index];
+        if (exam is! Map) return const SizedBox.shrink();
+        final title = (exam['exam_name'] ?? exam['name'] ?? 'Exam').toString();
+        final date = (exam['start_date'] ?? exam['date'] ?? 'N/A').toString();
+        final duration = (exam['duration'] ?? 'N/A').toString();
+        final marks = (exam['total_marks'] ?? 'N/A').toString();
+        final String examId = (exam['id'] ?? exam['exam_id'] ?? '').toString();
+        return GestureDetector(
+          onTap: () {
+            if (examId.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      ExamWritingPage(examId: examId, examName: title),
+                ),
+              );
+            }
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Theme.of(context).dividerColor),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      size: 14,
+                      color: Theme.of(context).disabledColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      "$date  •  $duration mins  •  $marks Marks",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).disabledColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

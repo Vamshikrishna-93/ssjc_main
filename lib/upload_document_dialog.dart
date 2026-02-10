@@ -164,10 +164,7 @@ class _UploadDocumentDialogState extends State<UploadDocumentDialog> {
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
-                    onPressed: () {
-                      // Upload logic here
-                      Navigator.pop(context);
-                    },
+                    onPressed: _simulateUpload,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 18,
@@ -183,5 +180,26 @@ class _UploadDocumentDialogState extends State<UploadDocumentDialog> {
         ),
       ),
     );
+  }
+
+  void _simulateUpload() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        Navigator.pop(context); // Close loading indicator
+        Navigator.pop(context); // Close upload dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(
+            content: Text("Document uploaded successfully!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    });
   }
 }

@@ -3,7 +3,9 @@ import 'package:student_app/hostel_fee_page.dart';
 import 'package:student_app/theme_controller.dart';
 
 class HostelPaymentPage extends StatefulWidget {
-  const HostelPaymentPage({super.key});
+  final double payableAmount;
+
+  const HostelPaymentPage({super.key, required this.payableAmount});
 
   @override
   State<HostelPaymentPage> createState() => _HostelPaymentPageState();
@@ -73,7 +75,7 @@ class _HostelPaymentPageState extends State<HostelPaymentPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Payment Amount: ₹39,200",
+                            "Payment Amount: ₹${widget.payableAmount.toStringAsFixed(0)}",
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -139,9 +141,57 @@ class _HostelPaymentPageState extends State<HostelPaymentPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    // Simulate payment process
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+
+                    Future.delayed(const Duration(seconds: 2), () {
+                      if (context.mounted) { // Check if widget is still mounted
+                        Navigator.pop(context); // Close loading indicator
+                        
+                        // Show success dialog
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor: card,
+                            title: Row(
+                              children: [
+                                const Icon(Icons.check_circle, color: Colors.green),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Payment Successful",
+                                  style: TextStyle(color: textPrimary),
+                                ),
+                              ],
+                            ),
+                            content: Text(
+                              "Your payment of ₹${widget.payableAmount.toStringAsFixed(0)} has been processed successfully.",
+                              style: TextStyle(color: textSecondary),
+                            ),
+                            actions: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.pop(context); // Close dialog
+                                  Navigator.pop(context); // Return to fees page
+                                  // In a real app, you might pass a result back to refresh the previous page
+                                },
+                                style: ElevatedButton.styleFrom(backgroundColor: primary),
+                                child: const Text("Done", style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    });
+                  },
                   child: const Text(
-                    "Pay ₹39,200",
+                    "Pay Now",
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -190,10 +240,8 @@ class _HostelPaymentPageState extends State<HostelPaymentPage> {
             style: ElevatedButton.styleFrom(backgroundColor: primary),
             onPressed: () {
               Navigator.pop(context);
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const HostelFeesPage()),
-              );
+              // Just pop the page to return to the previous screen
+              Navigator.pop(context);
             },
             child: const Text("Go Back", style: TextStyle(color: Colors.white)),
           ),

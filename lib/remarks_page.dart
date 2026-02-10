@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:student_app/studentdrawer.dart';
 import 'package:student_app/theme_controller.dart';
+import 'package:student_app/services/remarks_service.dart';
 
 class RemarksPage extends StatefulWidget {
   const RemarksPage({super.key});
@@ -12,11 +13,61 @@ class RemarksPage extends StatefulWidget {
 class _RemarksPageState extends State<RemarksPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  List<dynamic> _remarks = [];
+  bool _isLoading = true;
+  int _positiveCount = 0;
+  int _warningCount = 0;
+  int _criticalCount = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _fetchRemarks();
+  }
+
+  List<dynamic> _positiveRemarks = [];
+  List<dynamic> _warningRemarks = [];
+  List<dynamic> _criticalRemarks = [];
+
+  Future<void> _fetchRemarks() async {
+    if (!_isLoading) setState(() => _isLoading = true);
+    try {
+      final remarks = await RemarksService.getRemarks();
+      if (mounted) {
+        setState(() {
+          _remarks = remarks;
+          
+          _positiveRemarks = _remarks.where((r) {
+            final type = r['remark_type']?.toString().toLowerCase() ?? '';
+            return type == 'positive' || type == 'good' || type == 'appreciation';
+          }).toList();
+
+          _warningRemarks = _remarks.where((r) {
+             final type = r['remark_type']?.toString().toLowerCase() ?? '';
+             return type == 'warning';
+          }).toList();
+
+          _criticalRemarks = _remarks.where((r) {
+             final type = r['remark_type']?.toString().toLowerCase() ?? '';
+             return type == 'critical' || type == 'bad' || type == 'severe';
+          }).toList();
+
+          _positiveCount = _positiveRemarks.length;
+          _warningCount = _warningRemarks.length;
+          _criticalCount = _criticalRemarks.length;
+          
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -146,9 +197,7 @@ class _RemarksPageState extends State<RemarksPage>
                     ),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () {
-                      // Refresh functionality
-                    },
+                    onPressed: _fetchRemarks,
                     icon: Icon(
                       Icons.refresh,
                       size: 18,
@@ -186,7 +235,7 @@ class _RemarksPageState extends State<RemarksPage>
                 children: [
                   _StatCard(
                     title: "Total Remarks",
-                    count: "0",
+                    count: _remarks.length.toString(),
                     icon: Icons.chat_bubble_outline,
                     iconColor: Colors.blue,
                     countColor: Colors.blue,
@@ -196,7 +245,7 @@ class _RemarksPageState extends State<RemarksPage>
 
                   _StatCard(
                     title: "Positive",
-                    count: "0",
+                    count: _positiveCount.toString(),
                     icon: Icons.check_circle,
                     iconColor: Colors.green,
                     countColor: Colors.green,
@@ -206,7 +255,7 @@ class _RemarksPageState extends State<RemarksPage>
 
                   _StatCard(
                     title: "Warnings",
-                    count: "0",
+                    count: _warningCount.toString(),
                     icon: Icons.warning_amber_rounded,
                     iconColor: Colors.orange,
                     countColor: Colors.orange,
@@ -216,7 +265,7 @@ class _RemarksPageState extends State<RemarksPage>
 
                   _StatCard(
                     title: "Critical",
-                    count: "0",
+                    count: _criticalCount.toString(),
                     icon: Icons.error,
                     iconColor: Colors.red,
                     countColor: Colors.red,
@@ -309,6 +358,9 @@ class _RemarksPageState extends State<RemarksPage>
                             ),
                             onPressed: () {
                               // More options
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('No more options available')),
+                              );
                             },
                           ),
                         ],
@@ -322,11 +374,23 @@ class _RemarksPageState extends State<RemarksPage>
                         controller: _tabController,
                         children: [
                           // All Remarks Tab
-                          _EmptyState(),
+                          _isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : _remarks.isEmpty
+                              ? const _EmptyState()
+                              : _RemarksList(remarks: _remarks),
                           // Positive Tab
-                          _EmptyState(),
+                          _isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : _positiveRemarks.isEmpty
+                                  ? const _EmptyState()
+                                  : _RemarksList(remarks: _positiveRemarks),
                           // Warnings Tab
-                          _EmptyState(),
+                           _isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : _warningRemarks.isEmpty
+                                  ? const _EmptyState()
+                                  : _RemarksList(remarks: _warningRemarks),
                         ],
                       ),
                     ),
@@ -349,6 +413,7 @@ class _StatCard extends StatelessWidget {
   final Color countColor;
 
   const _StatCard({
+    super.key,
     required this.title,
     required this.count,
     required this.icon,
@@ -406,8 +471,58 @@ class _StatCard extends StatelessWidget {
   }
 }
 
+class _RemarksList extends StatelessWidget {
+  final List<dynamic> remarks;
+  const _RemarksList({super.key, required this.remarks});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: remarks.length,
+      itemBuilder: (context, index) {
+        final remark = remarks[index];
+        // Adjust keys based on actual API response structure
+        final remarkText =
+            remark['remarks'] ?? remark['remark'] ?? 'No details available';
+        final date = remark['created_at'] ?? remark['date'] ?? '';
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  remarkText.toString(),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (date.toString().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    date.toString(),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({super.key});
 
   @override
   Widget build(BuildContext context) {

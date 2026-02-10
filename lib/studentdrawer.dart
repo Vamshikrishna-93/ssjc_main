@@ -19,11 +19,11 @@ class StudentDrawerPage extends StatelessWidget {
       appBar: AppBar(
         elevation: 0,
         title: const Text(
-          "Menu",
+          "Sri Saraswathi College",
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.menu),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -31,6 +31,7 @@ class StudentDrawerPage extends StatelessWidget {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 🔹 LOGO BELOW APP BAR
               const SizedBox(height: 16),
@@ -44,7 +45,7 @@ class StudentDrawerPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 padding: const EdgeInsets.all(10),
-                child: Image.asset('assets/ssjc.jpg', fit: BoxFit.contain),
+                child: Image.asset('assets/logo.png', fit: BoxFit.contain),
               ),
               const SizedBox(height: 20),
               Padding(
