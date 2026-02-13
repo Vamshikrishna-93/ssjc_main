@@ -25,33 +25,6 @@ class AppStorage {
     return _box.read('userid');
   }
 
-  // ---------------- ROLE ----------------
-  static void saveRole(String role) {
-    _box.write('role', role);
-  }
-
-  static String? getRole() {
-    return _box.read('role');
-  }
-
-  // ---------------- LOGIN TYPE ----------------
-  static void saveLoginType(String type) {
-    _box.write('login_type', type);
-  }
-
-  static String? getLoginType() {
-    return _box.read('login_type');
-  }
-
-  // ---------------- PERMISSIONS ----------------
-  static void savePermissions(List<dynamic> permissions) {
-    _box.write('permissions', permissions);
-  }
-
-  static List<dynamic>? getPermissions() {
-    return _box.read('permissions');
-  }
-
   // ---------------- LOGIN FLAG ----------------
   static void setLoggedIn(bool value) {
     _box.write('isLoggedIn', value);
@@ -61,8 +34,56 @@ class AppStorage {
     return _box.read('isLoggedIn') ?? false;
   }
 
+  // ---------------- MULTI-USER SESSIONS ----------------
+  static void saveUserSession(Map<String, dynamic> userData, String token) {
+    if (userData['user_login'] == null) return;
+
+    List<dynamic> savedUsers = _box.read('saved_users') ?? [];
+
+    // Remove existing entry for this user if it exists (to update it)
+    savedUsers.removeWhere((u) => u['user_login'] == userData['user_login']);
+
+    // Add new session data
+    Map<String, dynamic> sessionData = {
+      'user_login': userData['user_login'],
+      'name': userData['name'] ?? 'User',
+      'avatar': userData['avatar'] ?? '',
+      'token': token,
+      'userid': userData['userid'],
+      'email': userData['email'] ?? '',
+      'mobile': userData['mobile'] ?? '',
+    };
+
+    savedUsers.add(sessionData);
+    _box.write('saved_users', savedUsers);
+  }
+
+  static List<Map<String, dynamic>> getSavedUsers() {
+    List<dynamic> users = _box.read('saved_users') ?? [];
+    return List<Map<String, dynamic>>.from(users);
+  }
+
+  static void removeUser(String userLogin) {
+    List<dynamic> savedUsers = _box.read('saved_users') ?? [];
+    savedUsers.removeWhere((u) => u['user_login'] == userLogin);
+    _box.write('saved_users', savedUsers);
+  }
+
+  static Future<void> switchUser(Map<String, dynamic> userSession) async {
+    await _box.write('token', userSession['token']);
+    await _box.write('userid', userSession['userid']);
+    await _box.write('isLoggedIn', true);
+  }
+
   // ---------------- LOGOUT ----------------
   static void clear() {
-    _box.erase(); // 🔥 MULTI-USER SAFE
+    // Only clear current session keys, preserve saved_users
+    _box.remove('token');
+    _box.remove('userid');
+    _box.remove('isLoggedIn');
+  }
+
+  static void clearAll() {
+    _box.erase(); // Completely wipe everything
   }
 }

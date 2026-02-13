@@ -19,19 +19,15 @@ class ProfilePage extends StatefulWidget {
   );
 
   static const LinearGradient cardGradient = LinearGradient(
-    colors: [
-      Color(0xFF0f3460),
-      Color(0xFF533483),
-    ],
+    colors: [Color(0xFF0f3460), Color(0xFF533483)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient darkAppBarGradient = LinearGradient(
-    colors: [
-      Color(0xFF0f172a),
-      Color(0xFF111827),
-    ],
+    colors: [Color(0xFF0f172a), Color(0xFF111827)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
   );
 
   static const Color lightBackground = Color(0xFFF6F7FB);
@@ -97,8 +93,9 @@ class _ProfilePageState extends State<ProfilePage> {
           flexibleSpace: isDark
               ? Container(
                   decoration: const BoxDecoration(
-                  gradient: ProfilePage.darkAppBarGradient,
-                ))
+                    gradient: ProfilePage.darkAppBarGradient,
+                  ),
+                )
               : null,
         ),
 
@@ -227,8 +224,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 labelStyle: const TextStyle(fontWeight: FontWeight.w600),
 
                 // ✅ INACTIVE TAB
-                unselectedLabelColor:
-                    isDark ? Colors.white70 : const Color(0xFF64748B),
+                unselectedLabelColor: isDark
+                    ? Colors.white70
+                    : const Color(0xFF64748B),
 
                 // ✅ INDICATOR (CLEAN, MATCHING)
                 indicator: UnderlineTabIndicator(
@@ -300,9 +298,7 @@ class ProfileTab extends StatelessWidget {
     return Obx(() {
       // ✅ BLOCK UI UNTIL DATA EXISTS
       if (controller.isLoading.value || controller.profile.value == null) {
-        return const Center(
-          child: CircularProgressIndicator(),
-        );
+        return const Center(child: CircularProgressIndicator());
       }
 
       // ✅ SAFE NOW
@@ -741,10 +737,13 @@ class ChangePasswordTab extends StatelessWidget {
           color: isDark ? Colors.white38 : const Color(0xFF9CA3AF),
         ),
         filled: true,
-        fillColor:
-            isDark ? Colors.white.withOpacity(0.10) : const Color(0xFFF3F4F6),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        fillColor: isDark
+            ? Colors.white.withOpacity(0.10)
+            : const Color(0xFFF3F4F6),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 16,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(
@@ -944,8 +943,9 @@ class _TfaTabState extends State<TfaTab> {
                         value: isEnabled,
                         activeThumbColor: Colors.white,
                         activeTrackColor: const Color(0xFF7C7CE6),
-                        inactiveThumbColor:
-                            widget.isDark ? Colors.white70 : null,
+                        inactiveThumbColor: widget.isDark
+                            ? Colors.white70
+                            : null,
                         onChanged: (value) {
                           setState(() => isEnabled = value);
                           _showResultDialog(value);
@@ -996,9 +996,7 @@ class _TfaTabState extends State<TfaTab> {
       context: context,
       barrierDismissible: false,
       builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         child: Padding(
           padding: const EdgeInsets.all(28),
           child: Column(
@@ -1011,21 +1009,14 @@ class _TfaTabState extends State<TfaTab> {
                   shape: BoxShape.circle,
                   color: Colors.green.withOpacity(0.15),
                 ),
-                child: const Icon(
-                  Icons.check,
-                  size: 46,
-                  color: Colors.green,
-                ),
+                child: const Icon(Icons.check, size: 46, color: Colors.green),
               ),
 
               const SizedBox(height: 18),
 
               const Text(
                 "Good job!",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 10),
@@ -1110,21 +1101,13 @@ class AttendanceTab extends StatelessWidget {
 
   // ================= HEADER ROW =================
   Widget _headerRow() {
-    return Row(
-      children: [
-        _headerCell("Day"),
-        _headerCell("Jan 2026"),
-      ],
-    );
+    return Row(children: [_headerCell("Day"), _headerCell("Jan 2026")]);
   }
 
   // ================= DAY ROW =================
   Widget _dayRow(int day) {
     return Row(
-      children: [
-        _dataCell("Day $day", isLabel: true),
-        _dataCell("N/A"),
-      ],
+      children: [_dataCell("Day $day", isLabel: true), _dataCell("N/A")],
     );
   }
 
@@ -1151,8 +1134,9 @@ class AttendanceTab extends StatelessWidget {
           gradient: isDark ? ProfilePage.cardGradient : null,
           color: isDark ? null : Colors.white,
           border: Border.all(
-            color:
-                isDark ? Colors.white.withOpacity(0.2) : Colors.grey.shade300,
+            color: isDark
+                ? Colors.white.withOpacity(0.2)
+                : Colors.grey.shade300,
           ),
         ),
         child: Text(
@@ -1177,8 +1161,9 @@ class AttendanceTab extends StatelessWidget {
           gradient: isDark ? ProfilePage.cardGradient : null,
           color: isDark ? null : Colors.white,
           border: Border.all(
-            color:
-                isDark ? Colors.white.withOpacity(0.15) : Colors.grey.shade300,
+            color: isDark
+                ? Colors.white.withOpacity(0.15)
+                : Colors.grey.shade300,
           ),
         ),
         child: Text(

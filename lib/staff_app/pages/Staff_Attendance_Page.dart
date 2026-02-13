@@ -106,8 +106,9 @@ class _StaffAttendancePageState extends State<StaffAttendancePage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
                   decoration: BoxDecoration(
-                    color:
-                        isDark ? Colors.white.withOpacity(0.12) : Colors.white,
+                    color: isDark
+                        ? Colors.white.withOpacity(0.12)
+                        : Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: isDark
@@ -165,14 +166,12 @@ class _StaffAttendancePageState extends State<StaffAttendancePage> {
                               )
                             : LinearGradient(
                                 colors: [
-                                  Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withOpacity(0.08),
-                                  Theme.of(context)
-                                      .colorScheme
-                                      .secondary
-                                      .withOpacity(0.08),
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withOpacity(0.08),
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.secondary.withOpacity(0.08),
                                 ],
                               ),
                         borderRadius: BorderRadius.circular(18),
@@ -183,8 +182,9 @@ class _StaffAttendancePageState extends State<StaffAttendancePage> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color:
-                                isDark ? neon.withOpacity(0.2) : Colors.black12,
+                            color: isDark
+                                ? neon.withOpacity(0.2)
+                                : Colors.black12,
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),

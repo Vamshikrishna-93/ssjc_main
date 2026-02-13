@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../widgets/search_field.dart';
+import '../controllers/hostel_controller.dart';
 
 class HostelAttendanceResultPage extends StatefulWidget {
   const HostelAttendanceResultPage({super.key});
@@ -12,6 +14,7 @@ class HostelAttendanceResultPage extends StatefulWidget {
 class _HostelAttendanceResultPageState
     extends State<HostelAttendanceResultPage> {
   String _query = "";
+  final HostelController hostelCtrl = Get.put(HostelController());
 
   // COLORS
   static const Color neon = Color(0xFF00FFF5);
@@ -20,35 +23,21 @@ class _HostelAttendanceResultPageState
   static const Color midBlue = Color(0xFF0f3460);
   static const Color purpleDark = Color(0xFF533483);
 
-  final List<List<String>> _rows = [
-    ['1', 'C-201', '2ND FLOOR C & D BLOCKS', 'GOSU ABHISHEK SAGAR', '7', '0'],
-    ['2', 'C-202', '2ND FLOOR C & D BLOCKS', 'GOSU ABHISHEK SAGAR', '7', '0'],
-    ['3', 'C-203', '2ND FLOOR C & D BLOCKS', 'GOSU ABHISHEK SAGAR', '8', '0'],
-    ['4', 'C-204', '2ND FLOOR C & D BLOCKS', 'GOSU ABHISHEK SAGAR', '9', '0'],
-  ];
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final filtered = _rows.where((row) {
-      return row[1].toLowerCase().contains(_query.toLowerCase()) ||
-          row[2].toLowerCase().contains(_query.toLowerCase()) ||
-          row[3].toLowerCase().contains(_query.toLowerCase()) ||
-          row[0].contains(_query);
-    }).toList();
-
     return Scaffold(
-      backgroundColor: Color(0xFF16213e),
+      backgroundColor: const Color(0xFF16213e),
 
-      // ✅ PERFECT APP BAR
+      // ✅ APP BAR
       appBar: AppBar(
         backgroundColor: isDark
             ? Colors.black.withOpacity(0.35)
             : Colors.white.withOpacity(0.95),
         elevation: 0,
         title: Text(
-          "Hostel Attendance",
+          "Hostel Attendance Status",
           style: TextStyle(
             color: isDark ? Colors.white : Colors.black,
             fontWeight: FontWeight.bold,
@@ -76,7 +65,6 @@ class _HostelAttendanceResultPageState
         ),
         child: Column(
           children: [
-            // ✅ FIXED GAP BELOW APP BAR
             const SizedBox(height: kToolbarHeight + 10),
 
             // 🔍 SEARCH BAR
@@ -93,7 +81,7 @@ class _HostelAttendanceResultPageState
                   ),
                 ),
                 child: SearchField(
-                  hint: 'Search floor / hostel',
+                  hint: 'Search room / floor',
                   hintStyle: TextStyle(
                     color: isDark ? Colors.black54 : Colors.black45,
                   ),
@@ -108,11 +96,48 @@ class _HostelAttendanceResultPageState
 
             // 📋 LIST
             Expanded(
-              child: ListView.builder(
-                itemCount: filtered.length,
-                itemBuilder: (context, index) =>
-                    _attendanceCard(filtered[index], isDark),
-              ),
+              child: Obx(() {
+                if (hostelCtrl.isLoading.value) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: neon),
+                  );
+                }
+
+                if (hostelCtrl.roomsSummary.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "No attendance records found.",
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  );
+                }
+
+                final filtered = hostelCtrl.roomsSummary.where((row) {
+                  final room = (row['room_name'] ?? '')
+                      .toString()
+                      .toLowerCase();
+                  final floor = (row['floor_name'] ?? '')
+                      .toString()
+                      .toLowerCase();
+                  return room.contains(_query.toLowerCase()) ||
+                      floor.contains(_query.toLowerCase());
+                }).toList();
+
+                if (filtered.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "No matching rooms found.",
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) =>
+                      _attendanceCard(filtered[index], isDark),
+                );
+              }),
             ),
           ],
         ),
@@ -121,93 +146,125 @@ class _HostelAttendanceResultPageState
   }
 
   // ================= CARD =================
-  Widget _attendanceCard(List<String> row, bool isDark) {
-    final total = int.parse(row[4]);
-    final present = int.parse(row[5]);
-    final absent = total - present;
+  Widget _attendanceCard(Map<String, dynamic> row, bool isDark) {
+    // Note: Adjust these keys based on actual API response structure
+    final roomName = row['room_name'] ?? row['room'] ?? 'N/A';
+    final floorName = row['floor_name'] ?? row['floor'] ?? 'N/A';
+    final incharge = row['incharge'] ?? row['in_charge'] ?? '—';
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: isDark ? null : Theme.of(context).cardColor,
-        gradient: isDark
-            ? LinearGradient(
-                colors: [
-                  midBlue.withOpacity(0.55),
-                  purpleDark.withOpacity(0.55),
-                ],
-              )
-            : null,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isDark ? neon.withOpacity(0.35) : Colors.grey.shade300,
-          width: 1.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? neon.withOpacity(0.25)
-                : Colors.black.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    final total = int.tryParse(row['total_students']?.toString() ?? '0') ?? 0;
+    final present = int.tryParse(row['present_count']?.toString() ?? '0') ?? 0;
+    final absent = int.tryParse(row['absent_count']?.toString() ?? '0') ?? 0;
+
+    return GestureDetector(
+      onTap: () {
+        // Navigate to Marking Page
+        Get.toNamed(
+          '/hostelAttendanceMark',
+          arguments: {
+            'room_id': row['room_id'] ?? row['id'],
+            'room_name': roomName,
+            'floor_name': floorName,
+          },
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isDark ? null : Theme.of(context).cardColor,
+          gradient: isDark
+              ? LinearGradient(
+                  colors: [
+                    midBlue.withOpacity(0.55),
+                    purpleDark.withOpacity(0.55),
+                  ],
+                )
+              : null,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isDark ? neon.withOpacity(0.35) : Colors.grey.shade300,
+            width: 1.2,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // TOP ROW
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "S.No: ${row[0]}",
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
+          boxShadow: [
+            if (isDark)
+              BoxShadow(
+                color: neon.withOpacity(0.25),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: neon,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  row[1],
-                  style: const TextStyle(
-                    color: Colors.black,
+            if (!isDark)
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // TOP ROW
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Room: $roomName",
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black,
                     fontWeight: FontWeight.bold,
+                    fontSize: 18,
                   ),
                 ),
-              ),
-            ],
-          ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: neon,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    "Details",
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
 
-          const SizedBox(height: 10),
-          Text("Floor: ${row[2]}",
-              style:
-                  TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
-          const SizedBox(height: 6),
-          Text("Incharge: ${row[3]}",
-              style:
-                  TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
+            const SizedBox(height: 10),
+            Text(
+              "Floor: $floorName",
+              style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              "Incharge: $incharge",
+              style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+            ),
 
-          const SizedBox(height: 14),
+            const SizedBox(height: 14),
 
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _badge(Icons.people, "Total: $total", neon),
-              _badge(
-                  Icons.check_circle, "Present: $present", Colors.greenAccent),
-              _badge(Icons.cancel, "Absent: $absent", Colors.redAccent),
-            ],
-          ),
-        ],
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _badge(Icons.people, "Total: $total", neon),
+                _badge(
+                  Icons.check_circle,
+                  "Present: $present",
+                  Colors.greenAccent,
+                ),
+                _badge(Icons.cancel, "Absent: $absent", Colors.redAccent),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -227,10 +284,7 @@ class _HostelAttendanceResultPageState
           const SizedBox(width: 6),
           Text(
             text,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: color, fontWeight: FontWeight.w600),
           ),
         ],
       ),

@@ -12,12 +12,15 @@ class BatchController extends GetxController {
     try {
       isLoading.value = true;
       batches.clear();
+      selectedBatch.value = null; // ✅ Reset selection
 
       final res = await ApiService.getRequest(
         ApiCollection.batchesByCourse(courseId),
       );
 
-      if (res['success'] == "true" && res['indexdata'] != null) {
+      final success = res['success'] == true || res['success'] == "true";
+
+      if (success && res['indexdata'] != null) {
         batches.assignAll(
           (res['indexdata'] as List)
               .map((e) => BatchModel.fromJson(e))
@@ -33,5 +36,6 @@ class BatchController extends GetxController {
 
   void clear() {
     batches.clear();
+    selectedBatch.value = null; // ✅ Reset selection
   }
 }

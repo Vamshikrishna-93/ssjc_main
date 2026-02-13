@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:student_app/staff_app/pages/home_dashboard_page.dart';
+import 'package:student_app/staff_app/pages/dashboard_page.dart';
 import 'package:student_app/staff_app/pages/login_page.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:student_app/home/home_page.dart';
-
-// Student Services & Theme
-import 'package:student_app/student_app/services/session_service.dart';
-import 'package:student_app/student_app/services/student_profile_service.dart';
-// Note: HomePage (Role Select) uses Student's ThemeController internally for AppBar behavior potentially.
-// But Staff Dashboard uses Staff's ThemeController.
-// We primarily initialize Staff's ThemeController for Get.find usage.
+import 'package:student_app/staff_app/pages/non_hostel_page.dart';
+import 'package:student_app/staff_app/pages/verify_attendance_page.dart';
 
 // Staff Controllers
 import 'package:student_app/staff_app/controllers/theme_controller.dart';
@@ -18,6 +13,9 @@ import 'package:student_app/staff_app/controllers/auth_controller.dart';
 
 // Staff Theme
 import 'package:student_app/staff_app/theme/app_theme.dart';
+
+// Staff Storage
+import 'package:student_app/staff_app/utils/get_storage.dart';
 
 // Staff Pages
 import 'package:student_app/staff_app/pages/profile_page.dart';
@@ -30,7 +28,6 @@ import 'package:student_app/staff_app/pages/ClassAttendancePage.dart';
 import 'package:student_app/staff_app/pages/exam_category_list_page.dart';
 import 'package:student_app/staff_app/pages/exam_list_page.dart';
 import 'package:student_app/staff_app/pages/student_attendance.dart';
-import 'package:student_app/staff_app/pages/verify_attendance_page .dart';
 import 'package:student_app/staff_app/pages/Room_page.dart';
 import 'package:student_app/staff_app/pages/hostel_members_page.dart';
 import 'package:student_app/staff_app/pages/floors_page.dart';
@@ -38,6 +35,8 @@ import 'package:student_app/staff_app/pages/add_hostel_page.dart';
 import 'package:student_app/staff_app/pages/hostel_attendance_View_page.dart';
 import 'package:student_app/staff_app/pages/hostel_attendance_result_page.dart';
 import 'package:student_app/staff_app/pages/fee_head_page.dart';
+import 'package:student_app/staff_app/pages/assign_students_page.dart';
+import 'package:student_app/staff_app/pages/hostel_list_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,20 +48,16 @@ void main() async {
   // 🔐 AuthController MUST NOT be permanent (multi-user safe) - Staff App
   Get.lazyPut<AuthController>(() => AuthController());
 
-  // Check Student Logged In Status
-  final bool isLoggedIn = await SessionService.isLoggedIn();
+  // 🔐 Check Staff Login Status
+  final bool isStaffLoggedIn = AppStorage.isLoggedIn();
+  final String initialRoute = isStaffLoggedIn ? '/dashboard' : '/';
 
-  if (isLoggedIn) {
-    // ignore: unawaited_futures
-    StudentProfileService.fetchAndSetProfileData();
-  }
-
-  runApp(SsJcApp(isLoggedIn: isLoggedIn));
+  runApp(SsJcApp(initialRoute: initialRoute));
 }
 
 class SsJcApp extends StatelessWidget {
-  final bool isLoggedIn;
-  const SsJcApp({super.key, required this.isLoggedIn});
+  final String initialRoute;
+  const SsJcApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -81,10 +76,13 @@ class SsJcApp extends StatelessWidget {
             ? ThemeMode.dark
             : ThemeMode.light,
 
-        // 🚀 Entry Point: Role Selection
-        home: const HomePage(),
+        // 🚀 Entry Point: Based on authentication status
+        initialRoute: initialRoute,
 
         getPages: [
+          // 🏠 HOME / ROLE SELECTION
+          GetPage(name: '/home', page: () => const HomePage()),
+
           // 🔑 AUTH FLOW
           // Note: '/splash' in Staff App is Staff Splash.
           // Since we start with HomePage (Role), we might not use '/splash' as initial route.
@@ -138,8 +136,10 @@ class SsJcApp extends StatelessWidget {
             name: '/hostelMembers',
             page: () => const HostelMembersPage(),
           ),
-          GetPage(name: '/floors', page: () => const FloorsPage()),
+          GetPage(name: '/floors', page: () => const FloorsManagementPage()),
+          GetPage(name: '/hostelList', page: () => const HostelListPage()),
           GetPage(name: '/addHostel', page: () => const AddHostelPage()),
+          GetPage(name: '/nonHostel', page: () => const NonHostelPage()),
           GetPage(
             name: '/hostelAttendanceFilter',
             page: () => const HostelAttendanceFilterPage(),
@@ -147,6 +147,10 @@ class SsJcApp extends StatelessWidget {
           GetPage(
             name: '/hostelAttendanceResult',
             page: () => const HostelAttendanceResultPage(),
+          ),
+          GetPage(
+            name: '/assignStudents',
+            page: () => const AssignStudentsPage(students: []),
           ),
         ],
       ),

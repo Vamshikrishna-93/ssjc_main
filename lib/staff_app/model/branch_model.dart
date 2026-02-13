@@ -8,5 +8,7 @@ class BranchModel {
     return BranchModel(id: json['id'], branchName: json['branch_name']);
   }
 
+  get branchId => null;
+
   void operator [](String other) {}
 }

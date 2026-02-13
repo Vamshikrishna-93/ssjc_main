@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:student_app/staff_app/controllers/hostel_controller.dart';
 import '../controllers/branch_controller.dart';
-import '../model/branch_model.dart';
 
 class HostelAttendanceFilterPage extends StatefulWidget {
   const HostelAttendanceFilterPage({super.key});
@@ -18,10 +18,26 @@ class _HostelAttendanceFilterPageState
   String? _hostel;
   String? _floor;
   String? _room;
-  String _month = 'Nov';
+  String _month = '11';
+  String? _selectedMonthName = 'November';
 
   final BranchController branchCtrl = Get.put(BranchController());
-  List<DropdownMenuItem<String>> branchItems = [];
+  final HostelController hostelCtrl = Get.put(HostelController());
+
+  final Map<String, String> monthMap = {
+    "January": "01",
+    "February": "02",
+    "March": "03",
+    "April": "04",
+    "May": "05",
+    "June": "06",
+    "July": "07",
+    "August": "08",
+    "September": "09",
+    "October": "10",
+    "November": "11",
+    "December": "12",
+  };
 
   // DARK COLORS
   static const Color dark1 = Color(0xFF1a1a2e);
@@ -34,22 +50,28 @@ class _HostelAttendanceFilterPageState
   void initState() {
     super.initState();
 
+    // 1️⃣ Load branches
     branchCtrl.loadBranches();
 
+    // 2️⃣ Listen branch list
     ever(branchCtrl.branches, (_) {
-      branchItems = branchCtrl.branches
-          .map(
-            (BranchModel b) => DropdownMenuItem(
-              value: b.branchName,
-              child: Text(b.branchName),
-            ),
-          )
-          .toList();
-
-      if (branchItems.isNotEmpty && _branch == null) {
-        _branch = branchItems.first.value;
+      // Auto select first branch
+      if (branchCtrl.branches.isNotEmpty && _branch == null) {
+        final b = branchCtrl.branches.first;
+        setState(() => _branch = b.branchName);
+        hostelCtrl.loadHostelsByBranch(b.id);
       }
-      setState(() {});
+    });
+
+    // 3️⃣ Listen hostel list
+    ever(hostelCtrl.hostels, (_) {
+      // Auto select first hostel
+      if (hostelCtrl.hostels.isNotEmpty && _hostel == null) {
+        final h = hostelCtrl.hostels.first;
+        setState(() => _hostel = h.buildingName);
+        hostelCtrl.selectedHostel.value = h;
+        hostelCtrl.loadFloorsAndRooms(h.id);
+      }
     });
   }
 
@@ -61,14 +83,15 @@ class _HostelAttendanceFilterPageState
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor: Colors.transparent, // ✅ FIX
-        systemNavigationBarIconBrightness:
-            isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: isDark
+            ? Brightness.light
+            : Brightness.dark,
       ),
       child: Scaffold(
         extendBodyBehindAppBar: true,
-        resizeToAvoidBottomInset: false, // ✅ FIX
-        backgroundColor: Color(0xFF16213e),
+        resizeToAvoidBottomInset: false,
+        backgroundColor: const Color(0xFF16213e),
 
         // ---------------- APP BAR ----------------
         appBar: AppBar(
@@ -95,7 +118,7 @@ class _HostelAttendanceFilterPageState
         // ---------------- BODY ----------------
         body: Container(
           width: double.infinity,
-          height: double.infinity, // ✅ ENSURES FULL PAINT
+          height: double.infinity,
           decoration: BoxDecoration(
             gradient: isDark
                 ? const LinearGradient(
@@ -116,103 +139,166 @@ class _HostelAttendanceFilterPageState
           child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
               16,
-              kToolbarHeight +
-                  MediaQuery.of(context).padding.top +
-                  16, // ✅ FIXED
+              kToolbarHeight + MediaQuery.of(context).padding.top + 16,
               16,
-              32 + MediaQuery.of(context).padding.bottom, // ✅ BOTTOM FIX
+              32 + MediaQuery.of(context).padding.bottom,
             ),
             child: Column(
               children: [
-                _neonDropdown(
-                  context,
-                  label: "Select Branch",
-                  icon: Icons.school,
-                  iconColor: neon,
-                  value: _branch,
-                  items: branchItems,
-                  onChanged: (v) => setState(() => _branch = v),
+                // BRANCH
+                Obx(
+                  () => _neonDropdown(
+                    context,
+                    label: "Select Branch",
+                    icon: Icons.school,
+                    iconColor: neon,
+                    value: _branch,
+                    items: branchCtrl.branches
+                        .map((b) => b.branchName)
+                        .toList(),
+                    onChanged: (v) {
+                      setState(() {
+                        _branch = v;
+                        _hostel = _floor = _room = null;
+                      });
+
+                      final branchObj = branchCtrl.branches.firstWhere(
+                        (b) => b.branchName == v,
+                      );
+                      hostelCtrl.loadHostelsByBranch(branchObj.id);
+                    },
+                  ),
                 ),
                 const SizedBox(height: 14),
-                _neonDropdown(
-                  context,
-                  label: "Select Hostel",
-                  icon: Icons.apartment,
-                  iconColor: Colors.purpleAccent,
-                  value: _hostel,
-                  items: const [
-                    DropdownMenuItem(value: 'ADARSA', child: Text('ADARSA')),
-                    DropdownMenuItem(value: 'VIDHYA', child: Text('VIDHYA')),
-                  ],
-                  onChanged: (v) => setState(() => _hostel = v),
+
+                // HOSTEL
+                Obx(
+                  () => _neonDropdown(
+                    context,
+                    label: "Select Hostel",
+                    icon: Icons.apartment,
+                    iconColor: Colors.purpleAccent,
+                    value: _hostel,
+                    items: hostelCtrl.hostels
+                        .map((h) => h.buildingName)
+                        .toList(),
+                    onChanged: (v) {
+                      setState(() {
+                        _hostel = v;
+                        _floor = _room = null;
+                      });
+
+                      final h = hostelCtrl.hostels.firstWhere(
+                        (h) => h.buildingName == v,
+                      );
+                      hostelCtrl.selectedHostel.value = h;
+                      hostelCtrl.loadFloorsAndRooms(h.id);
+                    },
+                  ),
                 ),
                 const SizedBox(height: 14),
-                _neonDropdown(
-                  context,
-                  label: "Select Floor",
-                  icon: Icons.layers,
-                  iconColor: Colors.blueAccent,
-                  value: _floor,
-                  items: const [
-                    DropdownMenuItem(value: '1', child: Text('First Floor')),
-                    DropdownMenuItem(value: '2', child: Text('Second Floor')),
-                  ],
-                  onChanged: (v) => setState(() => _floor = v),
+
+                // FLOOR
+                Obx(
+                  () => _neonDropdown(
+                    context,
+                    label: "Select Floor",
+                    icon: Icons.layers,
+                    iconColor: Colors.blueAccent,
+                    value: _floor,
+                    items: hostelCtrl.floors,
+                    onChanged: (v) => setState(() {
+                      _floor = v;
+                      _room = null;
+                    }),
+                  ),
                 ),
                 const SizedBox(height: 14),
-                _neonDropdown(
-                  context,
-                  label: "Select Room",
-                  icon: Icons.meeting_room,
-                  iconColor: Colors.pinkAccent,
-                  value: _room,
-                  items: const [
-                    DropdownMenuItem(value: 'C-201', child: Text('C-201')),
-                    DropdownMenuItem(value: 'C-202', child: Text('C-202')),
-                    DropdownMenuItem(value: 'C-203', child: Text('C-203')),
-                  ],
-                  onChanged: (v) => setState(() => _room = v),
+
+                // ROOM
+                Obx(
+                  () => _neonDropdown(
+                    context,
+                    label: "Select Room",
+                    icon: Icons.meeting_room,
+                    iconColor: Colors.pinkAccent,
+                    value: _room,
+                    items: hostelCtrl.rooms,
+                    onChanged: (v) => setState(() => _room = v),
+                  ),
                 ),
                 const SizedBox(height: 14),
+
+                // MONTH
                 _neonDropdown(
                   context,
                   label: "Select Month",
                   icon: Icons.calendar_month,
                   iconColor: Colors.orangeAccent,
-                  value: _month,
-                  items: const [
-                    DropdownMenuItem(value: 'Jan', child: Text('January')),
-                    DropdownMenuItem(value: 'Feb', child: Text('February')),
-                    DropdownMenuItem(value: 'Mar', child: Text('March')),
-                    DropdownMenuItem(value: 'Apr', child: Text('April')),
-                    DropdownMenuItem(value: 'May', child: Text('May')),
-                    DropdownMenuItem(value: 'Jun', child: Text('June')),
-                    DropdownMenuItem(value: 'Jul', child: Text('July')),
-                    DropdownMenuItem(value: 'Aug', child: Text('August')),
-                    DropdownMenuItem(value: 'Sep', child: Text('September')),
-                    DropdownMenuItem(value: 'Oct', child: Text('October')),
-                    DropdownMenuItem(value: 'Nov', child: Text('November')),
-                    DropdownMenuItem(value: 'Dec', child: Text('December')),
-                  ],
-                  onChanged: (v) => setState(() => _month = v!),
+                  value: _selectedMonthName,
+                  items: monthMap.keys.toList(),
+                  onChanged: (v) => setState(() {
+                    _selectedMonthName = v;
+                    _month = monthMap[v!]!;
+                    debugPrint("Selected Month Index: $_month");
+                  }),
                 ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark
-                          ? Colors.cyanAccent
-                          : Theme.of(context).primaryColor,
-                      foregroundColor: isDark ? Colors.black : Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+
+                // GET STUDENTS BUTTON
+                Obx(
+                  () => SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDark
+                            ? Colors.cyanAccent
+                            : Theme.of(context).primaryColor,
+                        foregroundColor: isDark ? Colors.black : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
+                      icon: hostelCtrl.isLoading.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.black,
+                              ),
+                            )
+                          : const Icon(Icons.search),
+                      label: Text(
+                        hostelCtrl.isLoading.value
+                            ? "Loading..."
+                            : "Get Students",
+                      ),
+                      onPressed: hostelCtrl.isLoading.value
+                          ? null
+                          : () async {
+                              if (_branch == null || _hostel == null) {
+                                Get.snackbar(
+                                  "Warning",
+                                  "Select Branch and Hostel",
+                                );
+                                return;
+                              }
+
+                              await hostelCtrl.loadRoomAttendanceSummary(
+                                branch: _branch!,
+                                date: DateTime.now().toIso8601String().split(
+                                  'T',
+                                )[0],
+                                hostel: _hostel!,
+                                floor: _floor ?? 'All',
+                                room: _room ?? 'All',
+                              );
+
+                              Get.toNamed('/hostelAttendanceResult');
+                            },
                     ),
-                    icon: const Icon(Icons.search),
-                    label: const Text("Get Students"),
-                    onPressed: () => Get.toNamed('/hostelAttendanceResult'),
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -223,7 +309,17 @@ class _HostelAttendanceFilterPageState
                         label: "Add Attendance",
                         icon: Icons.add,
                         color: Colors.greenAccent,
-                        onTap: () {},
+                        onTap: () {
+                          if (_branch == null ||
+                              _hostel == null ||
+                              _floor == null ||
+                              _room == null) {
+                            Get.snackbar("Error", "Please select all filters");
+                            return;
+                          }
+                          // TODO: Navigate to Mark Attendance Page
+                          Get.snackbar("Info", "Marking page coming soon");
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -252,7 +348,7 @@ class _HostelAttendanceFilterPageState
     required IconData icon,
     required Color iconColor,
     required String? value,
-    required List<DropdownMenuItem<String>> items,
+    required List<String> items,
     required void Function(String?) onChanged,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -274,11 +370,9 @@ class _HostelAttendanceFilterPageState
           const SizedBox(width: 12),
           Expanded(
             child: DropdownButtonFormField<String>(
-              value: value,
+              value: (value != null && items.contains(value)) ? value : null,
               dropdownColor: isDark ? dark2 : Theme.of(context).cardColor,
-              style: TextStyle(
-                color: isDark ? Colors.white : Colors.black,
-              ),
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
               iconEnabledColor: neon,
               decoration: InputDecoration(
                 labelText: label,
@@ -287,7 +381,9 @@ class _HostelAttendanceFilterPageState
                 ),
                 border: InputBorder.none,
               ),
-              items: items,
+              items: items
+                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                  .toList(),
               onChanged: onChanged,
             ),
           ),
@@ -314,7 +410,10 @@ class _HostelAttendanceFilterPageState
           ),
         ),
         icon: Icon(icon),
-        label: Text(label),
+        label: Text(
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
         onPressed: onTap,
       ),
     );

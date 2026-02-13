@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:student_app/staff_app/api/api_service.dart';
 import 'package:student_app/staff_app/controllers/shift_controller.dart';
 import 'package:student_app/staff_app/model/model1.dart';
 import '../controllers/branch_controller.dart';
@@ -44,8 +45,10 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
       duration: const Duration(milliseconds: 700),
     );
 
-    _fadeAnimation =
-        CurvedAnimation(parent: _animationController, curve: Curves.easeIn);
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeIn,
+    );
 
     // LOAD BRANCHES
     branchCtrl.loadBranches();
@@ -79,12 +82,51 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
       return;
     }
 
-    setState(() => isLoading = false);
-    _animationController.forward(from: 0);
-    _showSnackBar('Attendance Loaded', Colors.green);
+    try {
+      setState(() {
+        isLoading = true;
+        attendanceData.clear();
+      });
+
+      // get selected branch id
+      final branch = branchCtrl.branches.firstWhere(
+        (b) => b.branchName == selectedBranch,
+      );
+
+      // get selected shift id
+      final shift = shiftCtrl.shifts.firstWhere(
+        (s) => s.shiftName == selectedShift,
+      );
+
+      // 🔥 API CALL (same as Postman)
+      final result = await ApiService.getVerifyAttendance(
+        branchId: branch.id,
+        shiftId: shift.id,
+      );
+
+      setState(() {
+        attendanceData = result
+            .map((e) => AttendanceRecord.fromJson(e))
+            .toList();
+        isLoading = false;
+      });
+
+      _animationController.forward(from: 0);
+
+      if (attendanceData.isEmpty) {
+        _showSnackBar('No attendance found', Colors.orange);
+      } else {
+        _showSnackBar('Attendance Loaded', Colors.green);
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
+      _showSnackBar(e.toString(), Colors.red);
+    }
   }
 
   void _showSnackBar(String msg, Color color) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
@@ -146,7 +188,7 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
                 if (isLoading) _buildLoadingState(),
                 if (!isLoading && attendanceData.isEmpty)
                   _buildEmptyState(isDark),
-                if (attendanceData.isNotEmpty) _buildAttendanceTable(isDark),
+                if (attendanceData.isNotEmpty) _buildAttendanceCards(isDark),
               ],
             ),
           ),
@@ -184,8 +226,9 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
                   selectedShift = null;
                 });
 
-                final branch =
-                    branchCtrl.branches.firstWhere((b) => b.branchName == v);
+                final branch = branchCtrl.branches.firstWhere(
+                  (b) => b.branchName == v,
+                );
 
                 shiftCtrl.loadShifts(branch.id);
               },
@@ -267,9 +310,7 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
                 fontSize: 13,
               ),
               items: items
-                  .map(
-                    (e) => DropdownMenuItem(value: e, child: Text(e)),
-                  )
+                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                   .toList(),
               onChanged: onChanged,
             ),
@@ -286,8 +327,9 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
       child: ElevatedButton(
         onPressed: isLoading ? null : _fetchAttendanceData,
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-              isDark ? Colors.cyanAccent : Theme.of(context).primaryColor,
+          backgroundColor: isDark
+              ? Colors.cyanAccent
+              : Theme.of(context).primaryColor,
           foregroundColor: isDark ? Colors.black : Colors.white,
         ),
         child: const Text(
@@ -299,24 +341,52 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
   }
 
   // ================= DATA =================
-  Widget _buildAttendanceTable(bool isDark) {
+  Widget _buildAttendanceCards(bool isDark) {
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Column(
-        children: attendanceData
-            .map(
-              (e) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Text(
-                  e.batch,
+        children: attendanceData.map((record) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? Colors.white24 : Colors.grey.shade300,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 🔹 Batch Name
+                Text(
+                  record.batch,
                   style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : Colors.black,
-                    fontSize: 14,
                   ),
                 ),
-              ),
-            )
-            .toList(),
+
+                const SizedBox(height: 14),
+                _statRow("Total", record.total, Colors.blue, isDark: isDark),
+
+                _statRow(
+                  "Present",
+                  record.present,
+                  record.present > 0 ? Colors.green : Colors.greenAccent,
+                  isDark: isDark,
+                  highlight: true,
+                ),
+
+                _statRow("Absent", record.absent, Colors.red, isDark: isDark),
+              ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -350,4 +420,43 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
       child: Center(child: CircularProgressIndicator()),
     );
   }
+}
+
+Widget _statRow(
+  String label,
+  int value,
+  Color color, {
+  required bool isDark,
+  bool highlight = false,
+}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? Colors.white70 : Colors.black54,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: highlight ? color.withOpacity(0.9) : color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            value.toString(),
+            style: TextStyle(
+              color: highlight ? Colors.white : color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }

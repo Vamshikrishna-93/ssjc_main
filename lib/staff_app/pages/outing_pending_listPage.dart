@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:student_app/staff_app/controllers/outing_pending_controller.dart';
 import 'package:student_app/staff_app/model/model2.dart';
 import 'package:student_app/staff_app/pages/verify_outing_page.dart';
+import 'package:student_app/staff_app/controllers/outing_pending_controller.dart';
 
 class OutingPendingListPage extends StatefulWidget {
   const OutingPendingListPage({super.key});
@@ -113,9 +113,7 @@ class _OutingPendingListPageState extends State<OutingPendingListPage> {
               // ================= SEARCH =================
               TextField(
                 onChanged: controller.searchStudent,
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black,
-                ),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
                 decoration: InputDecoration(
                   hintText: "Search Student",
                   hintStyle: TextStyle(
@@ -125,8 +123,10 @@ class _OutingPendingListPageState extends State<OutingPendingListPage> {
                   fillColor: isDark
                       ? Colors.white.withOpacity(0.1)
                       : Theme.of(context).colorScheme.surface,
-                  prefixIcon: Icon(Icons.search,
-                      color: isDark ? Colors.white : Colors.black54),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: isDark ? Colors.white : Colors.black54,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none,
@@ -199,9 +199,9 @@ class _OutingPendingListPageState extends State<OutingPendingListPage> {
                                 image: DecorationImage(
                                   image:
                                       (s.image != null && s.image!.isNotEmpty)
-                                          ? NetworkImage(s.image!)
-                                          : const AssetImage("assets/girl.jpg")
-                                              as ImageProvider,
+                                      ? NetworkImage(s.image!)
+                                      : const AssetImage("assets/girl.jpg")
+                                            as ImageProvider,
                                   fit: BoxFit.cover,
                                 ),
                               ),
@@ -217,8 +217,9 @@ class _OutingPendingListPageState extends State<OutingPendingListPage> {
                                     s.admNo,
                                     style: TextStyle(
                                       fontSize: 17,
-                                      color:
-                                          isDark ? Colors.white : Colors.black,
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),

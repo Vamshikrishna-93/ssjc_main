@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:student_app/staff_app/pages/assign_students_page.dart';
 import '../widgets/search_field.dart';
+import '../api/api_service.dart';
 
 class HostelMembersPage extends StatefulWidget {
   const HostelMembersPage({super.key});
@@ -16,11 +18,8 @@ class _HostelMembersPageState extends State<HostelMembersPage> {
   static const Color purpleDark = Color(0xFF533483);
   static const Color neon = Color(0xFF00FFF5);
 
+  // ================= VIEW =================
   String _viewBy = 'Hostel Wise';
-  String _selectedHostel = 'SSJC-ADARSA CAMPUS';
-  String _selectedBranch = 'ADARSA';
-  String _query = '';
-
   final List<String> _viewOptions = [
     'Hostel Wise',
     'Floor Wise',
@@ -28,30 +27,106 @@ class _HostelMembersPageState extends State<HostelMembersPage> {
     'Batch Wise',
   ];
 
-  final List<String> _hostels = ['SSJC-ADARSA CAMPUS', 'SSJC-NEET CAMPUS'];
+  // ================= DYNAMIC WISE =================
+  List<String> _wiseOptions = [];
+  String _selectedWiseValue = '';
 
-  final List<String> _branches = ['ADARSA', 'NEET', 'MAINS'];
+  // ================= SEARCH =================
+  String _query = '';
 
-  final List<Map<String, String>> _members = [
-    {'admNo': '240018', 'name': 'PATHAN AFFAN', 'room': '101'},
-    {'admNo': '240025', 'name': 'KUMAR SAI', 'room': '101'},
-    {'admNo': '240040', 'name': 'TEJA REDDY', 'room': '102'},
-  ];
+  // ================= API STATE =================
+  List<Map<String, dynamic>> _allMembers = []; // FULL API DATA
+
+  bool _loading = false;
+  String? _error;
+
+  // ================= API CALL =================
+  Future<void> _fetchMembers() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final data = await ApiService.getHostelMembers(type: 'room', param: '7');
+      setState(() {
+        _allMembers = data; // 🔥 store full data
+        // initial visible list
+        _buildWiseOptions(); // build dropdowns from FULL data
+      });
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  void _buildWiseOptions() {
+    final Set<String> values = {};
+
+    for (final m in _allMembers) {
+      String? v;
+
+      switch (_viewBy) {
+        case 'Hostel Wise':
+          v = m['hostel'];
+          break;
+        case 'Floor Wise':
+          v = m['floor'];
+          break;
+        case 'Room Wise':
+          v = m['room']?.toString();
+          break;
+        case 'Batch Wise':
+          v = m['batch'];
+          break;
+      }
+
+      if (v != null && v.trim().isNotEmpty) {
+        values.add(v.trim());
+      }
+    }
+
+    _wiseOptions = values.toList()..sort();
+    _selectedWiseValue = _wiseOptions.isNotEmpty ? _wiseOptions.first : '';
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final filtered = _allMembers.where((m) {
+      final name = (m['student_name'] ?? '').toString().toLowerCase();
+      final admNo = (m['admno'] ?? '').toString();
+      final room = (m['room'] ?? '').toString();
 
-    final filtered = _members.where((m) {
-      return m['name']!.toLowerCase().contains(_query.toLowerCase()) ||
-          m['admNo']!.contains(_query) ||
-          m['room']!.contains(_query);
+      final matchesSearch =
+          name.contains(_query.toLowerCase()) ||
+          admNo.contains(_query) ||
+          room.contains(_query);
+
+      if (_selectedWiseValue.isEmpty) return matchesSearch;
+
+      bool matchesWise = true;
+      switch (_viewBy) {
+        case 'Hostel Wise':
+          matchesWise = m['hostel'] == _selectedWiseValue;
+          break;
+        case 'Floor Wise':
+          matchesWise = m['floor'] == _selectedWiseValue;
+          break;
+        case 'Room Wise':
+          matchesWise = m['room'].toString() == _selectedWiseValue;
+          break;
+        case 'Batch Wise':
+          matchesWise = m['batch'] == _selectedWiseValue;
+          break;
+      }
+
+      return matchesSearch && matchesWise;
     }).toList();
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-
-      // ================= APP BAR =================
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -70,8 +145,6 @@ class _HostelMembersPageState extends State<HostelMembersPage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-
-      // ================= BODY =================
       body: Container(
         decoration: BoxDecoration(
           gradient: isDark
@@ -80,14 +153,7 @@ class _HostelMembersPageState extends State<HostelMembersPage> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
-              : LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Theme.of(context).scaffoldBackgroundColor,
-                    Theme.of(context).colorScheme.surface,
-                  ],
-                ),
+              : null,
         ),
         child: Column(
           children: [
@@ -103,58 +169,37 @@ class _HostelMembersPageState extends State<HostelMembersPage> {
                       ? Colors.black.withOpacity(0.18)
                       : Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white24
-                        : Theme.of(context).dividerColor,
-                  ),
                 ),
                 child: Column(
                   children: [
-                    _dropdown(
-                      context,
-                      "View By",
-                      _viewBy,
-                      _viewOptions,
-                      (v) => setState(() => _viewBy = v!),
-                    ),
-                    const SizedBox(height: 10),
-                    _dropdown(
-                      context,
-                      "Hostel",
-                      _selectedHostel,
-                      _hostels,
-                      (v) => setState(() => _selectedHostel = v!),
-                    ),
-                    const SizedBox(height: 10),
-                    _dropdown(
-                      context,
-                      "Branch",
-                      _selectedBranch,
-                      _branches,
-                      (v) => setState(() => _selectedBranch = v!),
-                    ),
+                    _dropdown(context, _viewBy, _viewOptions, (v) {
+                      setState(() {
+                        _viewBy = v!;
+                        _selectedWiseValue = '';
+                        _buildWiseOptions(); // 🔥 rebuild from full data
+                      });
+                    }),
+                    if (_wiseOptions.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _dropdown(
+                        context,
+                        _selectedWiseValue,
+                        _wiseOptions,
+                        (v) => setState(() => _selectedWiseValue = v!),
+                      ),
+                    ],
                     const SizedBox(height: 14),
-
-                    // ================= ACTION BUTTONS =================
                     Row(
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Get Students (Demo Action)'),
-                                ),
-                              );
-                            },
+                            onPressed: _fetchMembers,
                             icon: const Icon(Icons.search),
                             label: const Text('Get Students'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isDark
-                                  ? const Color(0xFF6C63FF)
-                                  : Theme.of(context).primaryColor,
-                              foregroundColor: Colors.white,
+                              backgroundColor: const Color(0xFF6C63FF),
+                              foregroundColor:
+                                  Colors.white, // ✅ text & icon color
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -165,20 +210,22 @@ class _HostelMembersPageState extends State<HostelMembersPage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content:
-                                      Text('Assign Students (Demo Action)'),
+                            onPressed: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      AssignStudentsPage(students: filtered),
                                 ),
                               );
+                              if (result == true) {
+                                _fetchMembers();
+                              }
                             },
                             icon: const Icon(Icons.add),
                             label: const Text('Assign Students'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isDark
-                                  ? const Color(0xFF1ABC9C)
-                                  : Colors.green,
+                              backgroundColor: const Color(0xFF1ABC9C),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
@@ -194,155 +241,133 @@ class _HostelMembersPageState extends State<HostelMembersPage> {
               ),
             ),
 
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
 
-            // ================= TITLE =================
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Hostel Members List',
-                  style: TextStyle(
-                    color: isDark ? Colors.white70 : Colors.black87,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ================= LIST + SEARCH =================
+            // ================= LIST =================
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white12
-                            : Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white24
-                              : Theme.of(context).dividerColor,
-                        ),
-                      ),
-                      child: SearchField(
-                        hint: 'Search by Name, Adm No, Room',
-                        hintStyle: TextStyle(
-                          color:
-                              isDark ? const Color(0xFFB5C7E8) : Colors.black54,
-                        ),
-                        textColor: isDark ? Colors.white : Colors.black,
-                        iconColor: isDark ? neon : Colors.black54,
-                        onChanged: (v) => setState(() => _query = v),
-                      ),
+                    SearchField(
+                      hint: 'Search by Name, Adm No, Room',
+                      onChanged: (v) => setState(() => _query = v),
                     ),
                     const SizedBox(height: 10),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: filtered.length,
-                        itemBuilder: (context, i) {
-                          final m = filtered[i];
+                    if (_loading)
+                      const Expanded(
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_error != null)
+                      Expanded(child: Center(child: Text(_error!)))
+                    else
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: filtered.length,
+                          itemBuilder: (context, i) {
+                            final m = filtered[i];
 
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 14),
-                            padding: const EdgeInsets.all(18),
-                            decoration: BoxDecoration(
-                              gradient: isDark
-                                  ? LinearGradient(
-                                      colors: [
-                                        dark3.withOpacity(0.45),
-                                        purpleDark.withOpacity(0.45),
-                                      ],
-                                    )
-                                  : LinearGradient(
-                                      colors: [
-                                        Theme.of(context)
-                                            .colorScheme
-                                            .primary
-                                            .withOpacity(0.08),
-                                        Theme.of(context)
-                                            .colorScheme
-                                            .secondary
-                                            .withOpacity(0.08),
-                                      ],
-                                    ),
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: isDark
-                                    ? neon.withOpacity(0.35)
-                                    : Theme.of(context).dividerColor,
-                                width: 1.3,
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: neon.withOpacity(0.3),
+                                ),
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: isDark
-                                      ? neon.withOpacity(0.22)
-                                      : Colors.black12,
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      m['name']!,
-                                      style: TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.bold,
-                                        color: isDark
-                                            ? Colors.white
-                                            : Colors.black,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          m['student_name'] ?? '—',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Adm No: ${m['admno'] ?? ''}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        if (m['branch'] != null)
+                                          Text(
+                                            'Branch: ${m['branch']}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Column(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: neon,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          (m['room'] ?? '').toString(),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
+                                            fontSize: 12,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      "Adm No: ${m['admNo']}",
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? const Color(0xFFB5C7E8)
-                                            : Colors.black54,
-                                        fontSize: 14,
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              color: Colors.orange,
+                                              size: 20,
+                                            ),
+                                            onPressed: () => _editMember(m),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          IconButton(
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              color: Colors.red,
+                                              size: 20,
+                                            ),
+                                            onPressed: () => _deleteMember(m),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                  ],
-                                ),
-
-                                // ROOM BADGE
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
+                                    ],
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: neon,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    m['room']!,
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -353,10 +378,59 @@ class _HostelMembersPageState extends State<HostelMembersPage> {
     );
   }
 
+  // ================= ACTIONS =================
+
+  Future<void> _deleteMember(Map<String, dynamic> member) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Remove Member?"),
+        content: Text(
+          "Are you sure you want to remove ${member['student_name']} from this hostel?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("CANCEL"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("REMOVE", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _loading = true);
+      try {
+        await ApiService.deleteHostelMember(sid: member['sid'].toString());
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Member removed successfully")),
+        );
+        _fetchMembers();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        );
+      } finally {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  void _editMember(Map<String, dynamic> member) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AssignStudentsPage(students: [member], isEdit: true),
+      ),
+    ).then((_) => _fetchMembers());
+  }
+
   // ================= DROPDOWN =================
   Widget _dropdown(
     BuildContext context,
-    String label,
     String value,
     List<String> items,
     Function(String?) onChanged,
@@ -377,19 +451,11 @@ class _HostelMembersPageState extends State<HostelMembersPage> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          dropdownColor: isDark ? dark3 : Theme.of(context).cardColor,
           isExpanded: true,
+          dropdownColor: isDark ? dark3 : Theme.of(context).cardColor,
           icon: const Icon(Icons.arrow_drop_down, color: neon),
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black,
-          ),
           items: items
-              .map(
-                (o) => DropdownMenuItem(
-                  value: o,
-                  child: Text(o),
-                ),
-              )
+              .map((o) => DropdownMenuItem(value: o, child: Text(o)))
               .toList(),
           onChanged: onChanged,
         ),

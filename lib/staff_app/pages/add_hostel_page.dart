@@ -290,7 +290,7 @@ class _AddHostelPageState extends State<AddHostelPage> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           dropdownColor: isDark ? dark3 : Theme.of(context).cardColor,
           decoration: const InputDecoration(border: InputBorder.none),
           icon: const Icon(Icons.arrow_drop_down, color: neon),

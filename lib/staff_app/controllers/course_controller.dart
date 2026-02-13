@@ -40,5 +40,6 @@ class CourseController extends GetxController {
 
   void clear() {
     courses.clear();
+    selectedCourse.value = null; // ✅ Reset selection
   }
 }

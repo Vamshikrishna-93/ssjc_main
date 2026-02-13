@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:student_app/staff_app/controllers/monthly_attendance_controller.dart';
 import 'package:student_app/staff_app/controllers/shift_controller.dart';
-import 'package:student_app/staff_app/get_student_pages/student_month_attendance_page.dart';
+import 'package:student_app/staff_app/get_stundents_pages/student_month_attendance_page.dart';
 
 import '../controllers/branch_controller.dart';
 import '../controllers/group_controller.dart';
@@ -23,8 +23,9 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
   final CourseController courseCtrl = Get.put(CourseController());
   final BatchController batchCtrl = Get.put(BatchController());
   final ShiftController shiftCtrl = Get.put(ShiftController());
-  final MonthlyAttendanceController attendanceCtrl =
-      Get.put(MonthlyAttendanceController());
+  final MonthlyAttendanceController attendanceCtrl = Get.put(
+    MonthlyAttendanceController(),
+  );
 
   // ================= SELECTED VALUES =================
   String? branch;
@@ -93,8 +94,10 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
           ),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back,
-              color: isDark ? Colors.white : Colors.black),
+          icon: Icon(
+            Icons.arrow_back,
+            color: isDark ? Colors.white : Colors.black,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -113,10 +116,7 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
                   end: Alignment.bottomCenter,
                 )
               : const LinearGradient(
-                  colors: [
-                    Color(0xFFF5F6FA),
-                    Color(0xFFE8ECF4),
-                  ],
+                  colors: [Color(0xFFF5F6FA), Color(0xFFE8ECF4)],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -152,87 +152,100 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                Obx(() => _filterBox(
-                      context: context,
-                      label: "Select Branch",
-                      icon: Icons.school,
-                      iconColor: Colors.cyanAccent,
-                      value: branch,
-                      items:
-                          branchCtrl.branches.map((b) => b.branchName).toList(),
-                      onChanged: (v) {
-                        final b = branchCtrl.branches
-                            .firstWhere((e) => e.branchName == v);
-                        setState(() {
-                          branch = v;
-                          group = course = batch = shift = month = null;
-                          selectedMonthName = null;
-                        });
-                        groupCtrl.loadGroups(b.id);
-                        shiftCtrl.loadShifts(b.id);
-                      },
-                    )),
-                Obx(() => _filterBox(
-                      context: context,
-                      label: "Select Group",
-                      icon: Icons.groups,
-                      iconColor: Colors.pinkAccent,
-                      value: group,
-                      items: groupCtrl.groups.map((g) => g.name).toList(),
-                      onChanged: groupCtrl.groups.isEmpty
-                          ? null
-                          : (v) {
-                              final g = groupCtrl.groups
-                                  .firstWhere((e) => e.name == v);
-                              setState(() {
-                                group = v;
-                                course = batch = null;
-                              });
-                              courseCtrl.loadCourses(g.id);
-                            },
-                    )),
-                Obx(() => _filterBox(
-                      context: context,
-                      label: "Select Course",
-                      icon: Icons.menu_book,
-                      iconColor: Colors.blueAccent,
-                      value: course,
-                      items:
-                          courseCtrl.courses.map((c) => c.courseName).toList(),
-                      onChanged: courseCtrl.courses.isEmpty
-                          ? null
-                          : (v) {
-                              final c = courseCtrl.courses
-                                  .firstWhere((e) => e.courseName == v);
-                              setState(() {
-                                course = v;
-                                batch = null;
-                              });
-                              batchCtrl.loadBatches(c.id);
-                            },
-                    )),
-                Obx(() => _filterBox(
-                      context: context,
-                      label: "Select Batch",
-                      icon: Icons.group_work,
-                      iconColor: Colors.orangeAccent,
-                      value: batch,
-                      items: batchCtrl.batches.map((b) => b.batchName).toList(),
-                      onChanged: batchCtrl.batches.isEmpty
-                          ? null
-                          : (v) => setState(() => batch = v),
-                    )),
-                Obx(() => _filterBox(
-                      context: context,
-                      label: "Select Shift",
-                      icon: Icons.schedule,
-                      iconColor: Colors.lightGreenAccent,
-                      value: shift,
-                      items: shiftCtrl.shifts.map((s) => s.shiftName).toList(),
-                      onChanged: shiftCtrl.shifts.isEmpty
-                          ? null
-                          : (v) => setState(() => shift = v),
-                    )),
+                Obx(
+                  () => _filterBox(
+                    context: context,
+                    label: "Select Branch",
+                    icon: Icons.school,
+                    iconColor: Colors.cyanAccent,
+                    value: branch,
+                    items: branchCtrl.branches
+                        .map((b) => b.branchName)
+                        .toList(),
+                    onChanged: (v) {
+                      final b = branchCtrl.branches.firstWhere(
+                        (e) => e.branchName == v,
+                      );
+                      setState(() {
+                        branch = v;
+                        group = course = batch = shift = month = null;
+                        selectedMonthName = null;
+                      });
+                      groupCtrl.loadGroups(b.id);
+                      shiftCtrl.loadShifts(b.id);
+                    },
+                  ),
+                ),
+                Obx(
+                  () => _filterBox(
+                    context: context,
+                    label: "Select Group",
+                    icon: Icons.groups,
+                    iconColor: Colors.pinkAccent,
+                    value: group,
+                    items: groupCtrl.groups.map((g) => g.name).toList(),
+                    onChanged: groupCtrl.groups.isEmpty
+                        ? null
+                        : (v) {
+                            final g = groupCtrl.groups.firstWhere(
+                              (e) => e.name == v,
+                            );
+                            setState(() {
+                              group = v;
+                              course = batch = null;
+                            });
+                            courseCtrl.loadCourses(g.id);
+                          },
+                  ),
+                ),
+                Obx(
+                  () => _filterBox(
+                    context: context,
+                    label: "Select Course",
+                    icon: Icons.menu_book,
+                    iconColor: Colors.blueAccent,
+                    value: course,
+                    items: courseCtrl.courses.map((c) => c.courseName).toList(),
+                    onChanged: courseCtrl.courses.isEmpty
+                        ? null
+                        : (v) {
+                            final c = courseCtrl.courses.firstWhere(
+                              (e) => e.courseName == v,
+                            );
+                            setState(() {
+                              course = v;
+                              batch = null;
+                            });
+                            batchCtrl.loadBatches(c.id);
+                          },
+                  ),
+                ),
+                Obx(
+                  () => _filterBox(
+                    context: context,
+                    label: "Select Batch",
+                    icon: Icons.group_work,
+                    iconColor: Colors.orangeAccent,
+                    value: batch,
+                    items: batchCtrl.batches.map((b) => b.batchName).toList(),
+                    onChanged: batchCtrl.batches.isEmpty
+                        ? null
+                        : (v) => setState(() => batch = v),
+                  ),
+                ),
+                Obx(
+                  () => _filterBox(
+                    context: context,
+                    label: "Select Shift",
+                    icon: Icons.schedule,
+                    iconColor: Colors.lightGreenAccent,
+                    value: shift,
+                    items: shiftCtrl.shifts.map((s) => s.shiftName).toList(),
+                    onChanged: shiftCtrl.shifts.isEmpty
+                        ? null
+                        : (v) => setState(() => shift = v),
+                  ),
+                ),
                 _filterBox(
                   context: context,
                   label: "Select Month",
@@ -257,8 +270,14 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
                       ),
                     ),
                     onPressed: () async {
-                      if ([branch, group, course, batch, shift, month]
-                          .contains(null)) {
+                      if ([
+                        branch,
+                        group,
+                        course,
+                        batch,
+                        shift,
+                        month,
+                      ].contains(null)) {
                         Get.snackbar("Error", "Please select all filters");
                         return;
                       }
@@ -282,17 +301,21 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
                         month: month!,
                       );
 
-                      Get.to(() => StudentMonthAttendancePage(
-                            studentName: "Students",
-                            monthName: selectedMonthName!,
-                            year: DateTime.now().year,
-                            admNo: '',
-                          ));
+                      Get.to(
+                        () => StudentMonthAttendancePage(
+                          studentName: "Students",
+                          monthName: selectedMonthName!,
+                          year: DateTime.now().year,
+                          admNo: '',
+                        ),
+                      );
                     },
                     child: const Text(
                       "Get Students",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -301,8 +324,9 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
                   child: Text(
                     "2025 © SSJC.",
                     style: TextStyle(
-                        color: isDark ? Colors.white60 : Colors.black54,
-                        fontSize: 12),
+                      color: isDark ? Colors.white60 : Colors.black54,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
@@ -365,15 +389,10 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
                   Icons.keyboard_arrow_down,
                   color: isDark ? neon : Colors.black54,
                 ),
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black,
-                ),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
                 items: items
                     .map(
-                      (e) => DropdownMenuItem<String>(
-                        value: e,
-                        child: Text(e),
-                      ),
+                      (e) => DropdownMenuItem<String>(value: e, child: Text(e)),
                     )
                     .toList(),
                 onChanged: onChanged,

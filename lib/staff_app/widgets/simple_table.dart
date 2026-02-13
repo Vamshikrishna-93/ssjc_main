@@ -15,7 +15,7 @@ class SimpleTable extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         child: DataTable(
           columnSpacing: 18,
-          headingRowColor: MaterialStateProperty.all(Colors.grey.shade200),
+          headingRowColor: WidgetStateProperty.all(Colors.grey.shade200),
           columns: columns
               .map(
                 (c) => DataColumn(

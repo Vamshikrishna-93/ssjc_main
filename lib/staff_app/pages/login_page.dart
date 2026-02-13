@@ -230,7 +230,6 @@ class _LoginPageState extends State<LoginPage> {
                                           return;
                                         }
 
-                                        // Integrated with API Collection
                                         await auth.login(username, password);
                                       },
                                 child: auth.isLoading.value

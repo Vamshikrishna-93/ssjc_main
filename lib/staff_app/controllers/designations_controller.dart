@@ -43,12 +43,14 @@ class StaffController extends GetxController {
       ]);
 
       // 🔹 Departments
-      departmentList.value =
-          results[0].map((e) => DepartmentModel.fromJson(e)).toList();
+      departmentList.value = results[0]
+          .map((e) => DepartmentModel.fromJson(e))
+          .toList();
 
       // 🔹 Designations
-      designationList.value =
-          results[1].map((e) => DesignationModel.fromJson(e)).toList();
+      designationList.value = results[1]
+          .map((e) => DesignationModel.fromJson(e))
+          .toList();
     } catch (e) {
       errorMessage.value = e.toString();
     } finally {

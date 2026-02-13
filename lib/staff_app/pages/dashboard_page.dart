@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:student_app/staff_app/controllers/auth_controller.dart';
-import 'package:student_app/staff_app/controllers/profile_controller.dart';
 import 'package:student_app/staff_app/controllers/theme_controller.dart';
 import 'package:student_app/staff_app/pages/profile_page.dart';
-import 'package:student_app/staff_app/utils/get_storage.dart';
 
 class HomeDashboardPage extends StatefulWidget {
   const HomeDashboardPage({super.key});
@@ -163,20 +161,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                 Get.to(() => const ProfilePage());
                 break;
               case 'logout':
-                // 🔥 Clear stored user session
-                AppStorage.clear();
-
-                // ✅ Delete ONLY user-based controllers
-                if (Get.isRegistered<AuthController>()) {
-                  Get.delete<AuthController>(force: true);
-                }
-
-                if (Get.isRegistered<ProfileController>()) {
-                  Get.delete<ProfileController>(force: true);
-                }
-
-                // 🚪 Clear navigation stack & go to login
-                Get.offAllNamed('/login');
+                Get.find<AuthController>().logout();
                 break;
             }
           },
@@ -612,10 +597,16 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
               iconColor: Colors.orangeAccent,
               title: "Hostel",
               children: [
-                _drawerSubItem("Floors", () => Get.toNamed('/floors')),
+                _drawerSubItem("Hostel List", () => Get.toNamed('/hostelList')),
                 _drawerSubItem("Rooms", () => Get.toNamed('/rooms')),
+                _drawerSubItem("Floors", () => Get.toNamed('/floors')),
                 _drawerSubItem("Members", () => Get.toNamed('/hostelMembers')),
+
                 _drawerSubItem("Add Hostel", () => Get.toNamed('/addHostel')),
+                _drawerSubItem(
+                  "Non-Hostel Students",
+                  () => Get.toNamed('/nonHostel'),
+                ),
               ],
             ),
 

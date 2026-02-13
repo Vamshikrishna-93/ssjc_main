@@ -1,8 +1,7 @@
 import 'package:get/get.dart';
 import 'package:student_app/staff_app/api/api_service.dart';
-import 'package:student_app/staff_app/model/OutingInfo.dart';
-
 import 'package:student_app/staff_app/model/outing_model.dart';
+import 'package:student_app/staff_app/model/OutingInfo.dart';
 
 class OutingController extends GetxController {
   // ================= LOADING =================
@@ -103,9 +102,11 @@ class OutingController extends GetxController {
     if (searchQuery.value.isNotEmpty) {
       final q = searchQuery.value.toLowerCase();
       temp = temp
-          .where((o) =>
-              o.studentName.toLowerCase().contains(q) ||
-              o.admno.toLowerCase().contains(q))
+          .where(
+            (o) =>
+                o.studentName.toLowerCase().contains(q) ||
+                o.admno.toLowerCase().contains(q),
+          )
           .toList();
     }
 

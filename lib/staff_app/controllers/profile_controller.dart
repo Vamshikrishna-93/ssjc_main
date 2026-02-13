@@ -77,9 +77,7 @@ class ProfileController extends GetxController {
         _currentUserId = storedUserId;
       }
 
-      final response = await ApiService.getRequest(
-        ApiCollection.myProfile,
-      );
+      final response = await ApiService.getRequest(ApiCollection.myProfile);
 
       // API returns profile data directly (no success wrapper)
       // Check if response has success field for backward compatibility
@@ -97,11 +95,26 @@ class ProfileController extends GetxController {
         // No success field - response is the profile data directly
         profile.value = ProfileModel.fromJson(response);
       }
+
+      // 🔥 UPDATE SESSION WITH PROFILE DETAILS
+      if (profile.value != null && _currentUserId != null) {
+        final p = profile.value!;
+        final token = AppStorage.getToken();
+        if (token != null) {
+          AppStorage.saveUserSession({
+            'user_login': p.userLogin.isNotEmpty
+                ? p.userLogin
+                : _currentUserId.toString(),
+            'userid': _currentUserId,
+            'name': p.name,
+            'avatar': p.avatar,
+            'email': p.email,
+            'mobile': p.mobile,
+          }, token);
+        }
+      }
     } catch (e) {
-      Get.snackbar(
-        "Error",
-        "Profile fetch failed: ${e.toString()}",
-      );
+      Get.snackbar("Error", "Profile fetch failed: ${e.toString()}");
     } finally {
       isLoading.value = false;
     }

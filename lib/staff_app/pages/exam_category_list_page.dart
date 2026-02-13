@@ -103,7 +103,7 @@ class _ExamCategoryListPageState extends State<ExamCategoryListPage> {
                   }
 
                   return DropdownButtonFormField<int>(
-                    value: selectedBranchId,
+                    initialValue: selectedBranchId,
                     dropdownColor: isDark ? dark1 : Colors.white, // ✅ FIX
                     style: TextStyle(
                       color: isDark ? Colors.white : Colors.black,

@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:student_app/staff_app/controllers/branch_controller.dart';
 import 'package:student_app/staff_app/controllers/fee_controller.dart';
 
-
 final TextEditingController searchCtrl = TextEditingController();
 
 class FeeHeadPage extends StatefulWidget {
@@ -86,9 +85,10 @@ class _FeeHeadPageState extends State<FeeHeadPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Obx(
                   () => DropdownButtonFormField<String>(
-                    value: selectedBranch,
-                    dropdownColor:
-                        isDark ? const Color(0xFF1a1a2e) : Colors.white,
+                    initialValue: selectedBranch,
+                    dropdownColor: isDark
+                        ? const Color(0xFF1a1a2e)
+                        : Colors.white,
                     style: TextStyle(
                       color: isDark ? Colors.white : Colors.black,
                     ),
@@ -130,13 +130,14 @@ class _FeeHeadPageState extends State<FeeHeadPage> {
                 ),
               ),
               const SizedBox(height: 12),
-// ================= SEARCH BAR =================
+              // ================= SEARCH BAR =================
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
                   decoration: BoxDecoration(
-                    color:
-                        isDark ? Colors.white.withOpacity(0.12) : Colors.white,
+                    color: isDark
+                        ? Colors.white.withOpacity(0.12)
+                        : Colors.white,
                     borderRadius: BorderRadius.circular(30),
                     border: Border.all(
                       color: isDark ? Colors.white24 : const Color(0xFF9E9E9E),
@@ -180,9 +181,7 @@ class _FeeHeadPageState extends State<FeeHeadPage> {
               Expanded(
                 child: Obx(() {
                   if (feeCtrl.isLoading.value) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
+                    return const Center(child: CircularProgressIndicator());
                   }
 
                   if (feeCtrl.feeHeads.isEmpty) {
@@ -216,14 +215,12 @@ class _FeeHeadPageState extends State<FeeHeadPage> {
                                 )
                               : LinearGradient(
                                   colors: [
-                                    Theme.of(context)
-                                        .colorScheme
-                                        .primary
-                                        .withOpacity(0.08),
-                                    Theme.of(context)
-                                        .colorScheme
-                                        .secondary
-                                        .withOpacity(0.08),
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.primary.withOpacity(0.08),
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.secondary.withOpacity(0.08),
                                   ],
                                 ),
                           border: Border.all(
@@ -269,8 +266,9 @@ class _FeeHeadPageState extends State<FeeHeadPage> {
                                 backgroundColor: isDark
                                     ? Colors.cyanAccent
                                     : Theme.of(context).primaryColor,
-                                foregroundColor:
-                                    isDark ? Colors.black : Colors.white,
+                                foregroundColor: isDark
+                                    ? Colors.black
+                                    : Colors.white,
                               ),
                               child: const Text("Collect"),
                             ),

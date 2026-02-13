@@ -26,7 +26,7 @@ class ExamsController extends GetxController {
 
       if (response is List) {
         // API returns list directly
-        list = response as List;
+        list = response;
       } else if (response['indexdata'] != null) {
         list = response['indexdata'];
       } else if (response['data'] != null) {
