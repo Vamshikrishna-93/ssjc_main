@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:student_app/student_app/exam_details_dialog_page.dart';
 import 'package:student_app/student_app/exam_summary_dialog.dart';
 import 'package:student_app/student_app/student_app_bar.dart';
 import 'package:student_app/student_app/studentdrawer.dart';
+import 'package:student_app/student_app/widgets/marks_widgets.dart';
+import 'package:student_app/theme_controllers.dart';
 
 class MarksGradesPage extends StatefulWidget {
   final Map<String, dynamic> exam;
@@ -18,38 +19,46 @@ class MarksGradesPage extends StatefulWidget {
 class _MarksGradesPageState extends State<MarksGradesPage> {
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
+    return ThemeControllerWrapper(
+      themeController: StudentThemeController.themeMode,
+      child: Builder(
+        builder: (context) {
+          final theme = Theme.of(context);
+          final textTheme = theme.textTheme;
+          final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: const StudentAppBar(title: ""),
-      drawer: const StudentDrawerPage(),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context, textTheme),
-              const SizedBox(height: 24),
-              _buildSummaryCards(context),
-              const SizedBox(height: 24),
-              _buildPerformanceTrend(context, theme),
-              const SizedBox(height: 24),
-              _buildSubjectPerformance(context, theme),
-              const SizedBox(height: 24),
-              _buildExamHistory(context, theme),
-              const SizedBox(height: 24),
-              _buildAchievements(context),
-            ],
-          ),
-        ),
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: const StudentAppBar(title: ""),
+            drawer: const StudentDrawerPage(),
+            body: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(context, textTheme, isDark),
+                    const SizedBox(height: 24),
+                    _buildSummaryCards(context),
+                    const SizedBox(height: 24),
+                    _buildPerformanceTrend(context, theme, isDark),
+                    const SizedBox(height: 24),
+                    _buildSubjectPerformance(context, theme, isDark),
+                    const SizedBox(height: 24),
+                    _buildExamHistory(context, theme, isDark),
+                    const SizedBox(height: 24),
+                    _buildAchievements(context, theme, isDark),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, TextTheme textTheme) {
+  Widget _buildHeader(BuildContext context, TextTheme textTheme, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -63,14 +72,14 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
                   "Marks & Grades",
                   style: textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: textTheme.bodyLarge?.color,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   "Academic Performance Overview - 2024 Batch",
                   style: textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade600,
+                    color: textTheme.bodySmall?.color,
                   ),
                 ),
               ],
@@ -92,7 +101,7 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                side: BorderSide(color: Colors.grey.shade300),
+                side: BorderSide(color: Theme.of(context).dividerColor),
               ),
             ),
             const SizedBox(width: 12),
@@ -122,42 +131,33 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
   Widget _buildSummaryCards(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cardWidth = (constraints.maxWidth - (3 * 16)) / 4;
         return Wrap(
           spacing: 16,
           runSpacing: 16,
-          children: [
-            _buildStatCard(
-              "Overall Percentage",
-              "-5.00 %",
-              "No change from previous term",
-              Icons.trending_down,
-              const Color(0xFFEF4444),
-              constraints.maxWidth < 600 ? constraints.maxWidth : cardWidth,
+          children: const [
+            MarksStatCard(
+              title: "Overall Percentage",
+              value: "-5.00 %",
+              description: "No change from previous term",
+              valueColor: Color(0xFFEF4444),
             ),
-            _buildStatCard(
-              "Current Grade",
-              "D",
-              "Needs Improvement",
-              null,
-              const Color(0xFF10B981),
-              constraints.maxWidth < 600 ? constraints.maxWidth : cardWidth,
+            MarksStatCard(
+              title: "Current Grade",
+              value: "D",
+              description: "Needs Improvement",
+              valueColor: Color(0xFF10B981),
             ),
-            _buildStatCard(
-              "Class Rank",
-              "2/2",
-              "Top 100% of the class",
-              null,
-              const Color(0xFF8B5CF6),
-              constraints.maxWidth < 600 ? constraints.maxWidth : cardWidth,
+            MarksStatCard(
+              title: "Class Rank",
+              value: "2/2",
+              description: "Top 100% of the class",
+              valueColor: Color(0xFF8B5CF6),
             ),
-            _buildStatCard(
-              "Attendance in Exams",
-              "100 %",
-              "Perfect attendance record",
-              null,
-              const Color(0xFF0EA5E9),
-              constraints.maxWidth < 600 ? constraints.maxWidth : cardWidth,
+            MarksStatCard(
+              title: "Attendance in Exams",
+              value: "100 %",
+              description: "Perfect attendance record",
+              valueColor: Color(0xFF0EA5E9),
             ),
           ],
         );
@@ -165,70 +165,72 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
     );
   }
 
-  Widget _buildStatCard(
-    String title,
-    String value,
-    String description,
-    IconData? icon,
-    Color color,
-    double width,
+  Widget _buildAchievements(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
   ) {
     return Container(
-      width: width < 150 ? 300 : width,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+            "Achievements",
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.textTheme.bodyLarge?.color,
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: 4),
-              ],
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
+          const SizedBox(height: 24),
+          Column(
+            children: const [
+              AchievementCard(
+                title: "Top 5 Rank",
+                description: "Consistently in top 5 positions",
+                icon: Icons.star,
+                iconColor: Color(0xFFF1C40F),
+                backgroundColor: Color(0xFFEEF6FF),
+              ),
+              SizedBox(height: 16),
+              AchievementCard(
+                title: "Perfect Attendance",
+                description: "100% exam attendance record",
+                icon: Icons.trending_down,
+                iconColor: Color(0xFF10B981),
+                backgroundColor: Color(0xFFF0FDF4),
+              ),
+              SizedBox(height: 16),
+              AchievementCard(
+                title: "Subject Topper",
+                description: "Chemistry & Computer Science",
+                icon: Icons.star,
+                iconColor: Color(0xFFF39C12),
+                backgroundColor: Color(0xFFFFF7ED),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            description,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPerformanceTrend(BuildContext context, ThemeData theme) {
+  Widget _buildPerformanceTrend(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+  ) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,9 +238,12 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 "Performance Trend",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.textTheme.bodyLarge?.color,
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -246,20 +251,23 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: theme.dividerColor),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   children: [
                     Text(
                       "Monthly",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade700,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.textTheme.bodySmall?.color,
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.keyboard_arrow_down, size: 16),
+                    Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 16,
+                      color: theme.textTheme.bodySmall?.color,
+                    ),
                   ],
                 ),
               ),
@@ -274,7 +282,7 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
                   show: true,
                   drawVerticalLine: false,
                   getDrawingHorizontalLine: (value) => FlLine(
-                    color: Colors.grey.shade200,
+                    color: theme.dividerColor.withValues(alpha: 0.2),
                     strokeWidth: 1,
                     dashArray: [5, 5],
                   ),
@@ -295,9 +303,8 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
                           padding: const EdgeInsets.only(top: 8.0),
                           child: Text(
                             "Jan",
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 12,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.textTheme.bodySmall?.color,
                             ),
                           ),
                         );
@@ -311,9 +318,8 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
                       getTitlesWidget: (value, meta) {
                         return Text(
                           value.toInt().toString(),
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.textTheme.bodySmall?.color,
                           ),
                         );
                       },
@@ -348,6 +354,7 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
                 "PHYSICS",
                 Icons.star,
                 const Color(0xFFF1C40F),
+                theme,
               ),
               const SizedBox(width: 16),
               _buildSimpleStatCard(
@@ -355,6 +362,7 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
                 "PHYSICS",
                 Icons.trending_down,
                 const Color(0xFFEF4444),
+                theme,
               ),
             ],
           ),
@@ -368,20 +376,23 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
     String subject,
     IconData icon,
     Color color,
+    ThemeData theme,
   ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade100),
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               title,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.textTheme.bodySmall?.color,
+              ),
             ),
             const SizedBox(height: 8),
             Row(
@@ -390,10 +401,9 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
                 const SizedBox(width: 8),
                 Text(
                   subject,
-                  style: TextStyle(
-                    fontSize: 18,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: themeColor(subject),
+                    color: themeColor(subject, theme),
                   ),
                 ),
               ],
@@ -404,18 +414,22 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
     );
   }
 
-  Color themeColor(String subject) {
+  Color themeColor(String subject, ThemeData theme) {
     if (subject == "PHYSICS") return const Color(0xFF2563EB);
-    return Colors.black87;
+    return theme.textTheme.bodyLarge?.color ?? Colors.black87;
   }
 
-  Widget _buildSubjectPerformance(BuildContext context, ThemeData theme) {
+  Widget _buildSubjectPerformance(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+  ) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -423,15 +437,22 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 "Subject-wise Performance",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.textTheme.bodyLarge?.color,
+                ),
               ),
               Column(
                 children: [
-                  _buildTableButton(Icons.tune, "Filter"),
+                  _buildTableButton(Icons.tune, "Filter", theme),
                   const SizedBox(height: 20),
-                  _buildTableButton(Icons.file_download_outlined, "Export"),
+                  _buildTableButton(
+                    Icons.file_download_outlined,
+                    "Export",
+                    theme,
+                  ),
                 ],
               ),
             ],
@@ -440,18 +461,25 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFEEF6FF),
+              color: const Color(0xFF2563EB).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFD0E1FD)),
+              border: Border.all(
+                color: const Color(0xFF2563EB).withValues(alpha: 0.2),
+              ),
             ),
             child: Row(
               children: [
                 const Icon(Icons.info, color: Color(0xFF2563EB), size: 18),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
                     "You can improve your performance. Focus on weaker subjects.",
-                    style: TextStyle(fontSize: 14, color: Color(0xFF2563EB)),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark
+                          ? Colors.blue.shade300
+                          : const Color(0xFF2563EB),
+                    ),
                   ),
                 ),
               ],
@@ -461,7 +489,10 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
           Scrollbar(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: SizedBox(width: 800, child: _buildSubjectTable()),
+              child: SizedBox(
+                width: 800,
+                child: _buildSubjectTable(theme, isDark),
+              ),
             ),
           ),
         ],
@@ -469,326 +500,91 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
     );
   }
 
-  Widget _buildTableButton(IconData icon, String label) {
+  Widget _buildTableButton(IconData icon, String label, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.grey.shade600),
+          Icon(icon, size: 16, color: theme.textTheme.bodySmall?.color),
           const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.textTheme.bodySmall?.color,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSubjectTable() {
+  Widget _buildSubjectTable(ThemeData theme, bool isDark) {
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            border: Border.all(color: Colors.grey.shade100),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
+            border: Border.all(
+              color: theme.dividerColor.withValues(alpha: 0.1),
+            ),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Row(
             children: const [
-              Expanded(
-                flex: 3,
-                child: Text(
-                  "Subject",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Marks Obtained",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                flex: 4,
-                child: Text(
-                  "Percentage",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Status",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Class Rank",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Actions",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
+              HeaderCell(title: "Subject", flex: 3),
+              HeaderCell(title: "Marks Obtained", flex: 2, centered: true),
+              HeaderCell(title: "Percentage", flex: 4, centered: true),
+              HeaderCell(title: "Status", flex: 2, centered: true),
+              HeaderCell(title: "Class Rank", flex: 2, centered: true),
+              HeaderCell(title: "Actions", flex: 2, alignRight: true),
             ],
           ),
         ),
         const SizedBox(height: 8),
-        _buildSubjectRow("PHYSICS", "-1/5", -20, "Average", "-"),
+        SubjectRow(
+          subject: "PHYSICS",
+          marks: "-1/5",
+          percentage: -20,
+          grade: "Average",
+          gradeColor: const Color(0xFFF39C12),
+        ),
       ],
     );
   }
 
-  Widget _buildSubjectRow(
-    String subject,
-    String marks,
-    double percentage,
-    String status,
-    String rank,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text(
-              subject,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              marks,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-          ),
-          Expanded(
-            flex: 4,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 140,
-                  child: LinearProgressIndicator(
-                    value:
-                        0.1, // Mock value since percentage is negative in screenshot
-                    backgroundColor: Colors.grey.shade100,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Colors.grey,
-                    ),
-                    minHeight: 4,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "${percentage.toInt()}%",
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF4E5),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                status,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFFF39C12),
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Center(
-              child: Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF0EA5E9),
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  rank,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ExamDetailsPhysicsDialog(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(
-                    Icons.visibility_outlined,
-                    size: 18,
-                    color: Color(0xFF2563EB),
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.file_download_outlined,
-                    size: 18,
-                    color: Color(0xFF10B981),
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAchievements(BuildContext context) {
+  Widget _buildExamHistory(BuildContext context, ThemeData theme, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Achievements",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-          Column(
-            children: [
-              _buildAchievementCard(
-                "Top 5 Rank",
-                "Consistently in top 5 positions",
-                Icons.star,
-                const Color(0xFFF1C40F),
-                const Color(0xFFEEF6FF),
-              ),
-              const SizedBox(height: 16),
-              _buildAchievementCard(
-                "Perfect Attendance",
-                "100% exam attendance record",
-                Icons.trending_down,
-                const Color(0xFF10B981),
-                const Color(0xFFF0FDF4),
-              ),
-              const SizedBox(height: 16),
-              _buildAchievementCard(
-                "Subject Topper",
-                "Chemistry & Computer Science",
-                Icons.star,
-                const Color(0xFFF39C12),
-                const Color(0xFFFFF7ED),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAchievementCard(
-    String title,
-    String subtitle,
-    IconData icon,
-    Color iconColor,
-    Color bgColor,
-  ) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: iconColor, size: 32),
-          const SizedBox(height: 16),
           Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExamHistory(BuildContext context, ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
             "Exam History",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.textTheme.bodyLarge?.color,
+            ),
           ),
           const SizedBox(height: 24),
           Scrollbar(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: SizedBox(width: 800, child: _buildExamHistoryTable()),
+              child: SizedBox(
+                width: 800,
+                child: _buildExamHistoryTable(theme, isDark),
+              ),
             ),
           ),
         ],
@@ -796,159 +592,156 @@ class _MarksGradesPageState extends State<MarksGradesPage> {
     );
   }
 
-  Widget _buildExamHistoryTable() {
+  Widget _buildExamHistoryTable(ThemeData theme, bool isDark) {
     return Column(
       children: [
+        // Header
         Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            border: Border.all(color: Colors.grey.shade100),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Row(
             children: const [
-              Expanded(
-                flex: 4,
-                child: Text(
-                  "Exam Name",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Marks",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Percentage",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Grade",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Actions",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
+              HeaderCell(title: "Exam Name", flex: 4),
+              HeaderCell(title: "Marks", flex: 2),
+              HeaderCell(title: "Percentage", flex: 2),
+              HeaderCell(title: "Grade", flex: 2),
+              HeaderCell(title: "Actions", flex: 2, alignRight: true),
             ],
           ),
         ),
         const SizedBox(height: 8),
-        _buildExamHistoryRow(
-          "weekend Exam",
-          "-1/5",
-          "-20.00%",
-          "D",
-          widget.examId,
+        // Data Rows
+        _buildHistoryRow(
+          context,
+          theme,
+          "Mid Term Exam",
+          "450/500",
+          "90%",
+          "A+",
+          Colors.green,
+        ),
+        const SizedBox(height: 8),
+        _buildHistoryRow(
+          context,
+          theme,
+          "Quarterly Exam",
+          "400/500",
+          "80%",
+          "A",
+          Colors.blue,
         ),
       ],
     );
   }
 
-  Widget _buildExamHistoryRow(
-    String name,
+  Widget _buildHistoryRow(
+    BuildContext context,
+    ThemeData theme,
+    String examName,
     String marks,
     String percentage,
     String grade,
-    String examId,
+    Color gradeColor,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+        border: Border(
+          bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.1)),
+        ),
       ),
       child: Row(
         children: [
-          Expanded(
-            flex: 4,
-            child: Text(
-              name,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              marks,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(percentage, style: const TextStyle(fontSize: 14)),
-          ),
-          Expanded(
-            flex: 2,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                grade,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFFEF4444),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    _showExamSummaryDialog(context, examId);
-                  },
-                  icon: const Icon(
-                    Icons.visibility_outlined,
-                    size: 18,
-                    color: Color(0xFF2563EB),
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.file_download_outlined,
-                    size: 18,
-                    color: Color(0xFF10B981),
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-          ),
+          _cell(examName, flex: 4, theme: theme),
+          _cell(marks, flex: 2, theme: theme),
+          _cell(percentage, flex: 2, theme: theme),
+          _gradeCell(grade, gradeColor, flex: 2),
+          _actionCell(context, flex: 2),
         ],
       ),
     );
   }
-}
 
-void _showExamSummaryDialog(BuildContext context, String examId) {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (_) => ExamSummaryDialog(examId: examId)),
-  );
+  Widget _cell(String text, {required int flex, required ThemeData theme}) {
+    return Expanded(
+      flex: flex,
+      child: Text(text, style: theme.textTheme.bodyMedium),
+    );
+  }
+
+  Widget _gradeCell(String grade, Color color, {required int flex}) {
+    return Expanded(
+      flex: flex,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            grade,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _actionCell(BuildContext context, {required int flex}) {
+    return Expanded(
+      flex: flex,
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ExamSummaryDialog(examId: widget.examId),
+                  ),
+                );
+              },
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: Icon(
+                  Icons.remove_red_eye_outlined,
+                  color: Colors.blue,
+                  size: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {},
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: Icon(
+                  Icons.download_outlined,
+                  color: Colors.green,
+                  size: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:student_app/student_app/student_app_bar.dart';
 import 'attendence_month_details_page.dart';
 import 'package:student_app/student_app/services/attendance_service.dart';
+import 'package:student_app/theme_controllers.dart';
 
 class AttendancePage extends StatefulWidget {
   const AttendancePage({super.key});
@@ -127,63 +128,73 @@ class _AttendancePageState extends State<AttendancePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: const StudentAppBar(title: ""),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                final isMobile = constraints.maxWidth < 600;
-                final padding = isMobile ? 12.0 : 16.0;
+    return ThemeControllerWrapper(
+      themeController: StudentThemeController.themeMode,
+      child: Builder(
+        builder: (context) {
+          final theme = Theme.of(context);
+          final isDark = theme.brightness == Brightness.dark;
 
-                return SingleChildScrollView(
-                  child: Padding(
-                    padding: EdgeInsets.all(padding),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Attendance Dashboard Header Card
-                        _buildDashboardHeader(isMobile),
-                        SizedBox(height: isMobile ? 12 : 16),
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: const StudentAppBar(title: ""),
+            body: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 600;
+                      final padding = isMobile ? 12.0 : 16.0;
 
-                        // Overall Attendance Card
-                        _buildOverallAttendanceCard(isMobile),
-                        SizedBox(height: isMobile ? 12 : 16),
+                      return SingleChildScrollView(
+                        child: Padding(
+                          padding: EdgeInsets.all(padding),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Attendance Dashboard Header Card
+                              _buildDashboardHeader(isMobile),
+                              SizedBox(height: isMobile ? 12 : 16),
 
-                        // Days Attended Card
-                        _buildDaysAttendedCard(isMobile),
-                        SizedBox(height: isMobile ? 12 : 16),
+                              // Overall Attendance Card
+                              _buildOverallAttendanceCard(isMobile),
+                              SizedBox(height: isMobile ? 12 : 16),
 
-                        // Current Streak Card
-                        _buildCurrentStreakCard(isMobile),
-                        SizedBox(height: isMobile ? 12 : 16),
+                              // Days Attended Card
+                              _buildDaysAttendedCard(isMobile),
+                              SizedBox(height: isMobile ? 12 : 16),
 
-                        // Leaves Taken Card
-                        _buildLeavesTakenCard(isMobile),
-                        SizedBox(height: isMobile ? 12 : 16),
+                              // Current Streak Card
+                              _buildCurrentStreakCard(isMobile),
+                              SizedBox(height: isMobile ? 12 : 16),
 
-                        // Attendance Trend Card
-                        _buildAttendanceTrendCard(isMobile),
-                        SizedBox(height: isMobile ? 12 : 16),
+                              // Leaves Taken Card
+                              _buildLeavesTakenCard(isMobile),
+                              SizedBox(height: isMobile ? 12 : 16),
 
-                        // Performance Summary Card
+                              // Attendance Trend Card
+                              _buildAttendanceTrendCard(isMobile),
+                              SizedBox(height: isMobile ? 12 : 16),
 
-                        // Monthly Attendance Overview Card
-                        _buildMonthlyOverviewCard(isMobile),
-                        SizedBox(height: isMobile ? 12 : 16),
-                        _buildPerformanceSummaryCard(isMobile),
-                        SizedBox(height: isMobile ? 12 : 16),
+                              // Performance Summary Card
 
-                        // Recent Activity Card
-                        _buildRecentActivityCard(isMobile),
-                        SizedBox(height: isMobile ? 12 : 16),
-                      ],
-                    ),
+                              // Monthly Attendance Overview Card
+                              _buildMonthlyOverviewCard(isMobile),
+                              SizedBox(height: isMobile ? 12 : 16),
+                              _buildPerformanceSummaryCard(isMobile),
+                              SizedBox(height: isMobile ? 12 : 16),
+
+                              // Recent Activity Card
+                              _buildRecentActivityCard(isMobile),
+                              SizedBox(height: isMobile ? 12 : 16),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
+          );
+        },
+      ),
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:student_app/student_app/services/exams_service.dart';
+import 'package:student_app/theme_controllers.dart';
 
 class ExamWeekendDetails extends StatefulWidget {
   final String examId;
@@ -47,33 +48,39 @@ class _ExamWeekendDetailsState extends State<ExamWeekendDetails> {
 
     // Loading state
     if (_isLoading) {
-      return Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: const Center(child: CircularProgressIndicator()),
+      return ThemeControllerWrapper(
+        themeController: StudentThemeController.themeMode,
+        child: Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          body: const Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
     // Error state
     if (_errorMessage != null) {
-      return Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, color: Colors.red, size: 48),
-              const SizedBox(height: 16),
-              Text(
-                "Error: $_errorMessage",
-                style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Close"),
-              ),
-            ],
+      return ThemeControllerWrapper(
+        themeController: StudentThemeController.themeMode,
+        child: Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  "Error: $_errorMessage",
+                  style: const TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Close"),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -89,124 +96,127 @@ class _ExamWeekendDetailsState extends State<ExamWeekendDetails> {
     final hallticket = student['hallticket'] ?? 'N/A';
     final group = student['group'] ?? 'N/A';
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 12 : 32,
-            vertical: isMobile ? 20 : 40,
-          ),
-          child: Material(
-            elevation: 24,
-            shadowColor: Colors.black.withOpacity(0.45),
-            borderRadius: BorderRadius.circular(14),
-            color: colorScheme.surface,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: 900,
-                maxHeight: MediaQuery.of(context).size.height * 0.9,
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    /// HEADER
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Details: $examName',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        InkWell(
-                          borderRadius: BorderRadius.circular(20),
-                          onTap: () => Navigator.pop(context),
-                          child: Icon(
-                            Icons.close,
-                            size: 20,
-                            color: colorScheme.onSurface.withOpacity(0.6),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    /// TAB
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Details',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          width: 50,
-                          height: 2,
-                          color: colorScheme.primary,
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    /// DETAILS TABLE
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: theme.dividerColor),
-                      ),
-                      child: Column(
+    return ThemeControllerWrapper(
+      themeController: StudentThemeController.themeMode,
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 12 : 32,
+              vertical: isMobile ? 20 : 40,
+            ),
+            child: Material(
+              elevation: 24,
+              shadowColor: Colors.black.withOpacity(0.45),
+              borderRadius: BorderRadius.circular(14),
+              color: colorScheme.surface,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 900,
+                  maxHeight: MediaQuery.of(context).size.height * 0.9,
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      /// HEADER
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _row(theme, 'Student Name', studentName),
-                          _divider(theme),
-                          _row(theme, 'Hall Ticket', hallticket),
-                          _divider(theme),
-                          _row(theme, 'Branch', branch),
-                          _divider(theme),
-                          _row(theme, 'Group', group),
-                          _divider(theme),
-                          _row(theme, 'Exam Name', examName),
-                          _divider(theme),
-                          _row(
-                            theme,
-                            'Exam ID',
-                            examId,
-                            valueColor: const Color(0xFFEC4899),
+                          Text(
+                            'Details: $examName',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () => Navigator.pop(context),
+                            child: Icon(
+                              Icons.close,
+                              size: 20,
+                              color: colorScheme.onSurface.withOpacity(0.6),
+                            ),
                           ),
                         ],
                       ),
-                    ),
 
-                    const SizedBox(height: 28),
+                      const SizedBox(height: 20),
 
-                    /// INSTRUCTIONS
-                    Text(
-                      'Instructions:',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: colorScheme.onSurface,
+                      /// TAB
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Details',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            width: 50,
+                            height: 2,
+                            color: colorScheme.primary,
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 12),
 
-                    _bullet(
-                      theme,
-                      'Webcam must be enabled throughout the exam',
-                    ),
-                    _bullet(theme, 'Stable internet connection required'),
-                    _bullet(theme, 'No external assistance allowed'),
-                    _bullet(theme, 'Time limits will be strictly enforced'),
-                  ],
+                      const SizedBox(height: 20),
+
+                      /// DETAILS TABLE
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: theme.dividerColor),
+                        ),
+                        child: Column(
+                          children: [
+                            _row(theme, 'Student Name', studentName),
+                            _divider(theme),
+                            _row(theme, 'Hall Ticket', hallticket),
+                            _divider(theme),
+                            _row(theme, 'Branch', branch),
+                            _divider(theme),
+                            _row(theme, 'Group', group),
+                            _divider(theme),
+                            _row(theme, 'Exam Name', examName),
+                            _divider(theme),
+                            _row(
+                              theme,
+                              'Exam ID',
+                              examId,
+                              valueColor: const Color(0xFFEC4899),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      /// INSTRUCTIONS
+                      Text(
+                        'Instructions:',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      _bullet(
+                        theme,
+                        'Webcam must be enabled throughout the exam',
+                      ),
+                      _bullet(theme, 'Stable internet connection required'),
+                      _bullet(theme, 'No external assistance allowed'),
+                      _bullet(theme, 'Time limits will be strictly enforced'),
+                    ],
+                  ),
                 ),
               ),
             ),

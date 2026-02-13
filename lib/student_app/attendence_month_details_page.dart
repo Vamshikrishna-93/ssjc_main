@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:student_app/student_app/services/attendance_service.dart';
 
+import 'package:student_app/theme_controllers.dart';
+
 class AttendanceMonthDetailPage extends StatefulWidget {
   final Map<String, dynamic> monthData;
   final String month;
@@ -131,551 +133,595 @@ class _AttendanceMonthDetailPageState extends State<AttendanceMonthDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final monthData = _currentMonthData;
+    return ThemeControllerWrapper(
+      themeController: StudentThemeController.themeMode,
+      child: Builder(
+        builder: (context) {
+          final theme = Theme.of(context);
+          final isDark = theme.brightness == Brightness.dark;
+          final monthData = _currentMonthData;
 
-    final int totalRecordedDays = monthData['total'] ?? 0;
-    final int presentDays = monthData['present'] ?? 0;
-    final int absentDays = monthData['absent'] ?? 0;
-    final int leaveDays = monthData['leaves'] ?? 0;
-    final double attendancePercentage = monthData['percentage'] ?? 0.0;
-    final int totalDays = monthData['total'] ?? 0;
-    final String month = monthData['month'] ?? '';
+          final int totalRecordedDays = monthData['total'] ?? 0;
+          final int presentDays = monthData['present'] ?? 0;
+          final int absentDays = monthData['absent'] ?? 0;
+          final int leaveDays = monthData['leaves'] ?? 0;
+          final double attendancePercentage = monthData['percentage'] ?? 0.0;
+          final int totalDays = monthData['total'] ?? 0;
+          final String month = monthData['month'] ?? '';
 
-    final int performanceStars = _calculatePerformanceStars(
-      attendancePercentage,
-    );
-    final String performanceText = _getPerformanceText(attendancePercentage);
+          final int performanceStars = _calculatePerformanceStars(
+            attendancePercentage,
+          );
+          final String performanceText = _getPerformanceText(
+            attendancePercentage,
+          );
 
-    return Scaffold(
-      backgroundColor: isDark
-          ? Colors.grey.shade900.withValues(alpha: 0.95)
-          : Colors.grey.shade300.withValues(alpha: 0.95),
-      body: SafeArea(
-        child: Center(
-          child: Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(maxWidth: 900, maxHeight: 850),
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Header with title
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 20,
+          return Scaffold(
+            backgroundColor: isDark
+                ? Colors.grey.shade900.withValues(alpha: 0.95)
+                : Colors.grey.shade300.withValues(alpha: 0.95),
+            body: SafeArea(
+              child: Center(
+                child: Container(
+                  width: double.infinity,
+                  constraints: const BoxConstraints(
+                    maxWidth: 900,
+                    maxHeight: 850,
                   ),
+                  margin: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: isDark
-                            ? Colors.grey.shade800
-                            : Colors.grey.shade200,
-                        width: 1,
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
                       ),
-                    ),
+                    ],
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      Expanded(
-                        child: Text(
-                          'Day-wise attendance breakdown - $month',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                      // Header with title
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 20,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: isDark
+                                  ? Colors.grey.shade800
+                                  : Colors.grey.shade200,
+                              width: 1,
+                            ),
                           ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: _isLoading ? null : _fetchMonthData,
-                        icon: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.blue,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Day-wise attendance breakdown - $month',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyLarge?.color,
                                 ),
-                              )
-                            : Icon(
-                                Icons.refresh,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: _isLoading ? null : _fetchMonthData,
+                              icon: _isLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.blue,
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.refresh,
+                                      color: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge?.color,
+                                    ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: Icon(
+                                Icons.close,
                                 color: Theme.of(
                                   context,
                                 ).textTheme.bodyLarge?.color,
                               ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: Icon(
-                          Icons.close,
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                // Scrollable content
-                Expanded(
-                  child: Scrollbar(
-                    controller: _verticalScrollController,
-                    thumbVisibility: true,
-                    thickness: 8,
-                    radius: const Radius.circular(4),
-                    child: SingleChildScrollView(
-                      controller: _verticalScrollController,
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Attendance Summary Cards
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: [
-                              _buildSummaryCard(
-                                value: presentDays.toString(),
-                                label: 'Present Days',
-                                accent: isDark
-                                    ? Colors.green.shade600
-                                    : const Color(0xFF10B981),
-                                background: isDark
-                                    ? Colors.green.shade900.withOpacity(0.25)
-                                    : const Color(0xFFD1FAE5),
-                                isDark: isDark,
-                              ),
-                              _buildSummaryCard(
-                                value: absentDays.toString(),
-                                label: 'Absent Days',
-                                accent: isDark
-                                    ? Colors.red.shade600
-                                    : const Color(0xFFEF4444),
-                                background: isDark
-                                    ? Colors.red.shade900.withOpacity(0.25)
-                                    : const Color(0xFFFEE2E2),
-                                isDark: isDark,
-                              ),
-                              _buildSummaryCard(
-                                value: leaveDays.toString(),
-                                label: 'Leave Days',
-                                accent: isDark
-                                    ? Colors.orange.shade600
-                                    : const Color(0xFFF97316),
-                                background: isDark
-                                    ? Colors.orange.shade900.withOpacity(0.25)
-                                    : const Color(0xFFFFF7ED),
-                                isDark: isDark,
-                              ),
-                              _buildSummaryCard(
-                                value:
-                                    '${attendancePercentage.toStringAsFixed(0)}%',
-                                label: 'Attendance',
-                                accent: isDark
-                                    ? Colors.blue.shade600
-                                    : const Color(0xFF2563EB),
-                                background: isDark
-                                    ? Colors.blue.shade900.withOpacity(0.25)
-                                    : const Color(0xFFDBEAFE),
-                                isDark: isDark,
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // Month Performance Card
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.grey.shade800
-                                  : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      // Scrollable content
+                      Expanded(
+                        child: Scrollbar(
+                          controller: _verticalScrollController,
+                          thumbVisibility: true,
+                          thickness: 8,
+                          radius: const Radius.circular(4),
+                          child: SingleChildScrollView(
+                            controller: _verticalScrollController,
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                // Attendance Summary Cards
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: [
+                                    _buildSummaryCard(
+                                      value: presentDays.toString(),
+                                      label: 'Present Days',
+                                      accent: isDark
+                                          ? Colors.green.shade600
+                                          : const Color(0xFF10B981),
+                                      background: isDark
+                                          ? Colors.green.shade900.withOpacity(
+                                              0.25,
+                                            )
+                                          : const Color(0xFFD1FAE5),
+                                      isDark: isDark,
+                                    ),
+                                    _buildSummaryCard(
+                                      value: absentDays.toString(),
+                                      label: 'Absent Days',
+                                      accent: isDark
+                                          ? Colors.red.shade600
+                                          : const Color(0xFFEF4444),
+                                      background: isDark
+                                          ? Colors.red.shade900.withOpacity(
+                                              0.25,
+                                            )
+                                          : const Color(0xFFFEE2E2),
+                                      isDark: isDark,
+                                    ),
+                                    _buildSummaryCard(
+                                      value: leaveDays.toString(),
+                                      label: 'Leave Days',
+                                      accent: isDark
+                                          ? Colors.orange.shade600
+                                          : const Color(0xFFF97316),
+                                      background: isDark
+                                          ? Colors.orange.shade900.withOpacity(
+                                              0.25,
+                                            )
+                                          : const Color(0xFFFFF7ED),
+                                      isDark: isDark,
+                                    ),
+                                    _buildSummaryCard(
+                                      value:
+                                          '${attendancePercentage.toStringAsFixed(0)}%',
+                                      label: 'Attendance',
+                                      accent: isDark
+                                          ? Colors.blue.shade600
+                                          : const Color(0xFF2563EB),
+                                      background: isDark
+                                          ? Colors.blue.shade900.withOpacity(
+                                              0.25,
+                                            )
+                                          : const Color(0xFFDBEAFE),
+                                      isDark: isDark,
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 20),
+
+                                // Month Performance Card
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.grey.shade800
+                                        : const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        'Month Performance: $performanceText',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Theme.of(
-                                            context,
-                                          ).textTheme.bodyLarge?.color,
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Month Performance: $performanceText',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: Theme.of(
+                                                  context,
+                                                ).textTheme.bodyLarge?.color,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Total Days: $totalDays | Recorded Days: $totalRecordedDays',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: isDark
+                                                    ? Colors.grey.shade400
+                                                    : const Color(0xFF64748B),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Total Days: $totalDays | Recorded Days: $totalRecordedDays',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: isDark
-                                              ? Colors.grey.shade400
-                                              : const Color(0xFF64748B),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: attendancePercentage >= 90
+                                              ? (isDark
+                                                    ? Colors.green.shade900
+                                                          .withValues(
+                                                            alpha: 0.5,
+                                                          )
+                                                    : const Color(0xFFD1FAE5))
+                                              : attendancePercentage >= 70
+                                              ? (isDark
+                                                    ? Colors.orange.shade900
+                                                          .withValues(
+                                                            alpha: 0.5,
+                                                          )
+                                                    : const Color(0xFFFFF7ED))
+                                              : (isDark
+                                                    ? Colors.red.shade900
+                                                          .withValues(
+                                                            alpha: 0.5,
+                                                          )
+                                                    : const Color(0xFFFEE2E2)),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '${attendancePercentage.toStringAsFixed(1)}%',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: attendancePercentage >= 90
+                                                ? (isDark
+                                                      ? Colors.green.shade300
+                                                      : const Color(0xFF10B981))
+                                                : attendancePercentage >= 70
+                                                ? (isDark
+                                                      ? Colors.orange.shade300
+                                                      : const Color(0xFFF97316))
+                                                : (isDark
+                                                      ? Colors.red.shade300
+                                                      : const Color(
+                                                          0xFFEF4444,
+                                                        )),
+                                          ),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: attendancePercentage >= 90
-                                        ? (isDark
-                                              ? Colors.green.shade900
-                                                    .withValues(alpha: 0.5)
-                                              : const Color(0xFFD1FAE5))
-                                        : attendancePercentage >= 70
-                                        ? (isDark
-                                              ? Colors.orange.shade900
-                                                    .withValues(alpha: 0.5)
-                                              : const Color(0xFFFFF7ED))
-                                        : (isDark
-                                              ? Colors.red.shade900.withValues(
-                                                  alpha: 0.5,
-                                                )
-                                              : const Color(0xFFFEE2E2)),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    '${attendancePercentage.toStringAsFixed(1)}%',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: attendancePercentage >= 90
-                                          ? (isDark
-                                                ? Colors.green.shade300
-                                                : const Color(0xFF10B981))
-                                          : attendancePercentage >= 70
-                                          ? (isDark
-                                                ? Colors.orange.shade300
-                                                : const Color(0xFFF97316))
-                                          : (isDark
-                                                ? Colors.red.shade300
-                                                : const Color(0xFFEF4444)),
+                                const SizedBox(height: 24),
+
+                                // Day-wise Attendance Details Section
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.description,
+                                      size: 20,
+                                      color: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge?.color,
                                     ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Day-wise Attendance Details',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Theme.of(
+                                          context,
+                                        ).textTheme.bodyLarge?.color,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+
+                                // Show "No data" if attendance details is empty
+                                if (attendanceDetails.isEmpty)
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(40),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? Colors.grey.shade800
+                                          : const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isDark
+                                            ? Colors.grey.shade700
+                                            : const Color(0xFFE2E8F0),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.inbox_outlined,
+                                          size: 48,
+                                          color: isDark
+                                              ? Colors.grey.shade600
+                                              : Colors.grey.shade400,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'No data',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: isDark
+                                                ? Colors.grey.shade400
+                                                : const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                else ...[
+                                  // Horizontal Scrollbar (top)
+                                  _buildHorizontalScrollbar(isDark),
+                                  const SizedBox(height: 8),
+
+                                  // Table with horizontal scroll
+                                  Scrollbar(
+                                    controller: _horizontalScrollController,
+                                    thumbVisibility: true,
+                                    thickness: 8,
+                                    radius: const Radius.circular(4),
+                                    child: SingleChildScrollView(
+                                      controller: _horizontalScrollController,
+                                      scrollDirection: Axis.horizontal,
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          minWidth: 800,
+                                        ),
+                                        child: _buildAttendanceTable(isDark),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+
+                                  // Horizontal Scrollbar (bottom)
+                                  _buildHorizontalScrollbar(isDark),
+                                ],
+                                const SizedBox(height: 24),
+
+                                // Monthly Statistics Section
+                                Text(
+                                  'Monthly Statistics',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge?.color,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Statistics Grid
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.grey.shade800
+                                        : const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: _buildStatItem(
+                                              'Total Recorded Days',
+                                              totalRecordedDays.toString(),
+                                              null,
+                                              isDark,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: _buildStatItem(
+                                              'Present Days',
+                                              presentDays.toString(),
+                                              null,
+                                              isDark,
+                                              iconColor: isDark
+                                                  ? Colors.green.shade400
+                                                  : const Color(0xFF10B981),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: _buildStatItem(
+                                              'Absent Days',
+                                              absentDays.toString(),
+                                              null,
+                                              isDark,
+                                              iconColor: isDark
+                                                  ? Colors.red.shade400
+                                                  : const Color(0xFFEF4444),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: _buildStatItem(
+                                              'Leave Days',
+                                              leaveDays.toString(),
+                                              null,
+                                              isDark,
+                                              iconColor: isDark
+                                                  ? Colors.orange.shade400
+                                                  : const Color(0xFFF97316),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: _buildStatItem(
+                                              'Attendance Percentage',
+                                              '${attendancePercentage.toStringAsFixed(1)}%',
+                                              null,
+                                              isDark,
+                                              valueColor:
+                                                  attendancePercentage >= 90
+                                                  ? (isDark
+                                                        ? Colors.green.shade400
+                                                        : const Color(
+                                                            0xFF10B981,
+                                                          ))
+                                                  : attendancePercentage >= 70
+                                                  ? (isDark
+                                                        ? Colors.orange.shade400
+                                                        : const Color(
+                                                            0xFFF97316,
+                                                          ))
+                                                  : (isDark
+                                                        ? Colors.red.shade400
+                                                        : const Color(
+                                                            0xFFEF4444,
+                                                          )),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: _buildStatItem(
+                                              'Performance Rating',
+                                              '',
+                                              null,
+                                              isDark,
+                                              showStars: true,
+                                              starCount: performanceStars,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 24),
+                        ),
+                      ),
 
-                          // Day-wise Attendance Details Section
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.description,
-                                size: 20,
-                                color: Theme.of(
-                                  context,
-                                ).textTheme.bodyLarge?.color,
+                      // Action Buttons
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(
+                              color: isDark
+                                  ? Colors.grey.shade800
+                                  : Colors.grey.shade200,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            OutlinedButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 12,
+                                ),
+                                side: BorderSide(
+                                  color: isDark
+                                      ? Colors.grey.shade600
+                                      : Colors.grey.shade400,
+                                  width: 1.5,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Day-wise Attendance Details',
+                              child: Text(
+                                'Close',
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Theme.of(
                                     context,
                                   ).textTheme.bodyLarge?.color,
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Show "No data" if attendance details is empty
-                          if (attendanceDetails.isEmpty)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(40),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Colors.grey.shade800
-                                    : const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isDark
-                                      ? Colors.grey.shade700
-                                      : const Color(0xFFE2E8F0),
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.inbox_outlined,
-                                    size: 48,
-                                    color: isDark
-                                        ? Colors.grey.shade600
-                                        : Colors.grey.shade400,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'No data',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      color: isDark
-                                          ? Colors.grey.shade400
-                                          : const Color(0xFF64748B),
+                            ),
+                            const SizedBox(width: 12),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'PDF download functionality coming soon',
                                     ),
                                   ),
-                                ],
+                                );
+                              },
+                              icon: const Icon(Icons.download, size: 14),
+                              label: const Text(
+                                'Download Month Report (PDF)',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            )
-                          else ...[
-                            // Horizontal Scrollbar (top)
-                            _buildHorizontalScrollbar(isDark),
-                            const SizedBox(height: 8),
-
-                            // Table with horizontal scroll
-                            Scrollbar(
-                              controller: _horizontalScrollController,
-                              thumbVisibility: true,
-                              thickness: 8,
-                              radius: const Radius.circular(4),
-                              child: SingleChildScrollView(
-                                controller: _horizontalScrollController,
-                                scrollDirection: Axis.horizontal,
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    minWidth: 800,
-                                  ),
-                                  child: _buildAttendanceTable(isDark),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF7C3AED),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 8),
-
-                            // Horizontal Scrollbar (bottom)
-                            _buildHorizontalScrollbar(isDark),
                           ],
-                          const SizedBox(height: 24),
-
-                          // Monthly Statistics Section
-                          Text(
-                            'Monthly Statistics',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Theme.of(
-                                context,
-                              ).textTheme.bodyLarge?.color,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Statistics Grid
-                          Container(
-                            padding: const EdgeInsets.all(20),
-
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.grey.shade800
-                                  : const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildStatItem(
-                                        'Total Recorded Days',
-                                        totalRecordedDays.toString(),
-                                        null,
-                                        isDark,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: _buildStatItem(
-                                        'Present Days',
-                                        presentDays.toString(),
-                                        null,
-                                        isDark,
-                                        iconColor: isDark
-                                            ? Colors.green.shade400
-                                            : const Color(0xFF10B981),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildStatItem(
-                                        'Absent Days',
-                                        absentDays.toString(),
-                                        null,
-                                        isDark,
-                                        iconColor: isDark
-                                            ? Colors.red.shade400
-                                            : const Color(0xFFEF4444),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: _buildStatItem(
-                                        'Leave Days',
-                                        leaveDays.toString(),
-                                        null,
-                                        isDark,
-                                        iconColor: isDark
-                                            ? Colors.orange.shade400
-                                            : const Color(0xFFF97316),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildStatItem(
-                                        'Attendance Percentage',
-                                        '${attendancePercentage.toStringAsFixed(1)}%',
-                                        null,
-                                        isDark,
-                                        valueColor: attendancePercentage >= 90
-                                            ? (isDark
-                                                  ? Colors.green.shade400
-                                                  : const Color(0xFF10B981))
-                                            : attendancePercentage >= 70
-                                            ? (isDark
-                                                  ? Colors.orange.shade400
-                                                  : const Color(0xFFF97316))
-                                            : (isDark
-                                                  ? Colors.red.shade400
-                                                  : const Color(0xFFEF4444)),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: _buildStatItem(
-                                        'Performance Rating',
-                                        '',
-                                        null,
-                                        isDark,
-                                        showStars: true,
-                                        starCount: performanceStars,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Action Buttons
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(
-                        color: isDark
-                            ? Colors.grey.shade800
-                            : Colors.grey.shade200,
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          side: BorderSide(
-                            color: isDark
-                                ? Colors.grey.shade600
-                                : Colors.grey.shade400,
-                            width: 1.5,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          'Close',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'PDF download functionality coming soon',
-                              ),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.download, size: 14),
-                        label: const Text(
-                          'Download Month Report (PDF)',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7C3AED),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

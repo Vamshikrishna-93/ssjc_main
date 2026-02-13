@@ -4,6 +4,8 @@ import 'package:student_app/student_app/receipt_page.dart';
 import 'package:student_app/student_app/services/fee_services_page.dart';
 import 'package:student_app/student_app/studentdrawer.dart';
 import 'package:student_app/student_app/student_app_bar.dart';
+import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
 
 enum SummaryType { danger, success, warning, info }
 
@@ -20,6 +22,9 @@ class _HostelFeesPageState extends State<HostelFeesPage>
   bool _isLoading = true;
   dynamic _feeData;
   String? _errorMessage;
+
+  // Static cache to persist data across page navigations
+  static dynamic _cachedFeeData;
 
   // Safe accessors
   Map<String, dynamic> get _data =>
@@ -101,14 +106,23 @@ class _HostelFeesPageState extends State<HostelFeesPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _fetchData();
+
+    // Use cached data if available, otherwise fetch
+    if (_cachedFeeData != null) {
+      _feeData = _cachedFeeData;
+      _isLoading = false;
+    } else {
+      _fetchData();
+    }
   }
 
-  Future<void> _fetchData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  Future<void> _fetchData({bool showLoading = true}) async {
+    if (showLoading && mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
     try {
       final data = await HostelFeeService.getHostelFeeData();
       if (mounted) {
@@ -120,6 +134,7 @@ class _HostelFeesPageState extends State<HostelFeesPage>
           } else {
             _feeData = data;
           }
+          _cachedFeeData = _feeData; // Update cache
           _isLoading = false;
         });
       }
@@ -211,54 +226,60 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                 ],
               ),
             )
-          : SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _header(),
-                    const SizedBox(height: 16),
-
-                    _summaryCard(
-                      type: SummaryType.danger,
-                      title: "Total Due Amount",
-                      value: "₹${_totalDue.toStringAsFixed(0)}",
-                      badgeText: "Immediate attention required",
-                    ),
-                    const SizedBox(height: 16),
-                    _summaryCard(
-                      type: SummaryType.success,
-                      title: "Total Paid Amount",
-                      value: "₹${_totalPaid.toStringAsFixed(0)}",
-                      badgeText:
-                          "${(_totalFee > 0 ? (_totalPaid / _totalFee * 100) : 0).toStringAsFixed(1)}% of total fee paid",
-                    ),
-                    const SizedBox(height: 16),
-                    _summaryCard(
-                      type: SummaryType.warning,
-                      title: "Next Due Date",
-                      value:
-                          _data['next_due_date']?.toString() ??
-                          "Immediate Payment Required",
-                      badgeText: _totalDue > 0 ? "Payment pending" : "No dues",
-                    ),
-                    const SizedBox(height: 16),
-                    _summaryCard(
-                      type: SummaryType.info,
-                      title: "Payment Status",
-                      value: _totalDue > 0 ? "Pending" : "Completed",
-                      badgeText: "Total Fee: ₹${_totalFee.toStringAsFixed(0)}",
-                    ),
-                    const SizedBox(height: 28),
-                    _tabsSection(),
-                    const SizedBox(height: 28),
-                    _quickPayCard(),
-                    const SizedBox(height: 24),
-                    _feeSummaryCard(),
-                    const SizedBox(height: 28),
-                    _branchSummaryCard(),
-                  ],
+          : RefreshIndicator(
+              onRefresh: () => _fetchData(showLoading: false),
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _header(),
+                      const SizedBox(height: 16),
+                      _summaryCard(
+                        type: SummaryType.danger,
+                        title: "Total Due Amount",
+                        value: "₹${_totalDue.toStringAsFixed(0)}",
+                        badgeText: "Immediate attention required",
+                      ),
+                      const SizedBox(height: 16),
+                      _summaryCard(
+                        type: SummaryType.success,
+                        title: "Total Paid Amount",
+                        value: "₹${_totalPaid.toStringAsFixed(0)}",
+                        badgeText:
+                            "${(_totalFee > 0 ? (_totalPaid / _totalFee * 100) : 0).toStringAsFixed(1)}% of total fee paid",
+                      ),
+                      const SizedBox(height: 16),
+                      _summaryCard(
+                        type: SummaryType.warning,
+                        title: "Next Due Date",
+                        value:
+                            _data['next_due_date']?.toString() ??
+                            "Immediate Payment Required",
+                        badgeText: _totalDue > 0
+                            ? "Payment pending"
+                            : "No dues",
+                      ),
+                      const SizedBox(height: 16),
+                      _summaryCard(
+                        type: SummaryType.info,
+                        title: "Payment Status",
+                        value: _totalDue > 0 ? "Pending" : "Completed",
+                        badgeText:
+                            "Total Fee: ₹${_totalFee.toStringAsFixed(0)}",
+                      ),
+                      const SizedBox(height: 28),
+                      _tabsSection(),
+                      const SizedBox(height: 28),
+                      _quickPayCard(),
+                      const SizedBox(height: 24),
+                      _feeSummaryCard(),
+                      const SizedBox(height: 28),
+                      _branchSummaryCard(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -918,6 +939,7 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                       ),
                       child: Row(
                         children: [
+                          _HeaderPH("S.No", 1),
                           _HeaderPH("Date", 2),
                           _HeaderPH("Invoice No.", 2),
                           _HeaderPH("Branch", 2),
@@ -970,8 +992,9 @@ class _HostelFeesPageState extends State<HostelFeesPage>
     final amount = "₹${payment['amount'] ?? 0}";
     final mode = payment['mode']?.toString() ?? 'Online';
     final status = payment['status']?.toString() ?? 'Paid';
-
     final branch = payment['branch']?.toString() ?? '';
+    final viewUrl = payment['view_url']?.toString() ?? '';
+    final sno = payment['sno']?.toString() ?? '';
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
@@ -980,6 +1003,7 @@ class _HostelFeesPageState extends State<HostelFeesPage>
       ),
       child: Row(
         children: [
+          _cellPH(sno, 1),
           _cellPH(date, 2),
           _cellPH(invoice, 2, link: true),
           _cellPH(branch, 2),
@@ -994,19 +1018,32 @@ class _HostelFeesPageState extends State<HostelFeesPage>
                   color: Color(0xFF1677FF),
                   size: 18,
                 ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ReceiptPage(
-                        data: {
-                          'amount': amount,
-                          'receipt_no': invoice,
-                          'date': date,
-                        },
+                onPressed: () async {
+                  if (viewUrl.isNotEmpty) {
+                    final Uri url = Uri.parse(viewUrl);
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    } else {
+                      _toast("Could not launch view URL");
+                    }
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ReceiptPage(
+                          data: {
+                            'amount': amount,
+                            'receipt_no': invoice,
+                            'date': date,
+                            'sno': sno,
+                          },
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
                 },
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),

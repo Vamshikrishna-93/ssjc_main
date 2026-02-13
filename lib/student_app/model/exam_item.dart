@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-/* ================== MODEL ================== */
-
 class ExamModel {
   final String title;
   final String date;
@@ -53,27 +51,40 @@ class ExamModel {
 
   factory ExamModel.fromJson(Map<String, dynamic> json) {
     return ExamModel(
-      title: json['examname'] ?? json['exam_name'] ?? json['title'] ?? 'N/A',
-      date: json['exam_date'] ?? json['date'] ?? 'N/A',
-      time: json['exam_time'] ?? json['time'] ?? 'N/A',
-      board: json['board'] ?? 'N/A',
-      progress: (json['progress'] != null)
+      title:
+          json['examname'] ??
+          json['exam_name'] ??
+          json['title'] ??
+          'Untitled Exam',
+      date: json['date'] ?? json['exam_date'] ?? 'N/A',
+      time: json['timefrom'] ?? json['exam_time'] ?? json['time'] ?? 'N/A',
+      board: json['branch_name'] ?? json['board'] ?? 'N/A',
+      progress: (json['exam_submit_status'] == 'Submitted')
+          ? 100.0
+          : (json['progress'] != null)
           ? double.tryParse(json['progress'].toString()) ?? 0.0
           : 0.0,
-      type: json['exam_type'] ?? 'Online',
-      id: json['id']?.toString() ?? '',
-      subject: json['subject_name'] ?? json['subject'] ?? 'N/A',
-      color: Colors.blue, // Default color for API items
-      marks: json['marks']?.toString(),
+      type: (json['exam_type']?.toString() == '1') ? 'Offline' : 'Online',
+      id: json['exam_id']?.toString() ?? json['id']?.toString() ?? '',
+      subject:
+          json['category'] ??
+          json['subject_name'] ??
+          json['subject'] ??
+          'General',
+      color: Colors.blue,
+      marks: json['total_marks']?.toString() ?? json['marks']?.toString(),
       percentage: json['percentage']?.toString(),
       grade: json['grade'],
       rank: json['rank']?.toString(),
       performance: json['performance'],
       duration: json['duration'],
-      questions: json['total_questions'] != null
-          ? int.tryParse(json['total_questions'].toString())
-          : null,
-      passingMarks: json['passing_marks'],
+      questions: json['questions_count'] != null
+          ? int.tryParse(json['questions_count'].toString())
+          : (json['total_questions'] != null
+                ? int.tryParse(json['total_questions'].toString())
+                : null),
+      passingMarks:
+          json['exam_total_marks']?.toString() ?? json['passing_marks'],
       platform: json['platform'],
       isProctored: json['is_proctored'] == 1 || json['is_proctored'] == true,
       hasWebcam: json['has_webcam'] == 1 || json['has_webcam'] == true,
@@ -81,13 +92,43 @@ class ExamModel {
     );
   }
 
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'exam_name': title,
+      'date': date,
+      'time': time,
+      'board': board,
+      'branch_name': board,
+      'progress': progress,
+      'type': type,
+      'exam_type': type,
+      'id': id,
+      'exam_id': id,
+      'subject': subject,
+      'marks': marks,
+      'total_marks': marks,
+      'percentage': percentage,
+      'grade': grade,
+      'rank': rank,
+      'performance': performance,
+      'duration': duration,
+      'questions': questions,
+      'passing_marks': passingMarks,
+      'platform': platform,
+      'is_proctored': isProctored,
+      'has_webcam': hasWebcam,
+      'has_internet': hasInternet,
+    };
+  }
+
   // ================== UPCOMING EXAMS ==================
-  static const List<ExamModel> upcomingExams = [
+  static List<ExamModel> upcomingExams = [
     ExamModel(
       title: "WEEKEND TEST-10",
       board: "EAMCET • SSJC-VIDHYA BHAVAN",
-      date: "2024-03-15",
-      time: "10:00 AM",
+      date: "2026-02-10",
+      time: "8:00 PM",
       progress: 0,
       type: "Online",
       id: "589",
@@ -230,7 +271,7 @@ class ExamModel {
   ];
 
   // ================== COMPLETED EXAMS ==================
-  static const List<ExamModel> completedExams = [
+  static List<ExamModel> completedExams = [
     ExamModel(
       title: "weekend Exam",
       board: "EAMCET • SSJC-VIDHYA BHAVAN",
@@ -257,7 +298,7 @@ class ExamModel {
   ];
 
   // ================== ONLINE EXAMS ==================
-  static const List<ExamModel> onlineExams = [
+  static List<ExamModel> onlineExams = [
     ExamModel(
       title: "weekend Exam",
       board: "EAMCET • SSJC-VIDHYA BHAVAN",
@@ -279,7 +320,7 @@ class ExamModel {
   ];
 
   // ================== OFFLINE EXAMS ==================
-  static const List<ExamModel> offlineExams = [
+  static List<ExamModel> offlineExams = [
     ExamModel(
       title: "Physics Lab Internal",
       board: "STATE BOARD",

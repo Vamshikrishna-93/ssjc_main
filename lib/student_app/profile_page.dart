@@ -6,6 +6,7 @@ import 'package:student_app/student_app/services/student_profile_service.dart';
 import 'package:student_app/student_app/student_app_bar.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:student_app/theme_controllers.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -293,282 +294,300 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    return ThemeControllerWrapper(
+      themeController: StudentThemeController.themeMode,
+      child: Builder(
+        builder: (context) {
+          final theme = Theme.of(context);
+          final isDark = theme.brightness == Brightness.dark;
 
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        appBar: const StudentAppBar(title: "", showLeading: true),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
+          if (_isLoading) {
+            return Scaffold(
+              backgroundColor: theme.scaffoldBackgroundColor,
+              appBar: const StudentAppBar(title: "", showLeading: true),
+              body: const Center(child: CircularProgressIndicator()),
+            );
+          }
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: const StudentAppBar(title: "Profile", showLeading: true),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Center(
-          child: Column(
-            children: [
-              // MAIN CARD (Avatar + Menu Buttons)
-              Container(
-                constraints: const BoxConstraints(maxWidth: 500),
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: theme.cardColor,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.3 : 0.05,
-                      ),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: const StudentAppBar(title: "Profile", showLeading: true),
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Center(
                 child: Column(
                   children: [
-                    Stack(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isDark
-                                  ? Colors.grey.shade700
-                                  : Colors.white,
-                              width: 4,
+                    // MAIN CARD (Avatar + Menu Buttons)
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 500),
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(
+                              isDark ? 0.3 : 0.05,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 8,
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Stack(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isDark
+                                        ? Colors.grey.shade700
+                                        : Colors.white,
+                                    width: 4,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+                                ),
+                                child: ValueListenableBuilder<String?>(
+                                  valueListenable:
+                                      StudentProfileService.profileImageUrl,
+                                  builder: (context, imageUrl, _) {
+                                    final isBase64 =
+                                        imageUrl != null &&
+                                        imageUrl.startsWith('data:image');
+                                    return CircleAvatar(
+                                      radius: 50,
+                                      backgroundColor: isDark
+                                          ? Colors.grey.shade800
+                                          : Colors.grey.shade200,
+                                      backgroundImage:
+                                          imageUrl != null &&
+                                              imageUrl.isNotEmpty
+                                          ? (isBase64
+                                                    ? MemoryImage(
+                                                        base64Decode(
+                                                          imageUrl
+                                                              .split(',')
+                                                              .last,
+                                                        ),
+                                                      )
+                                                    : NetworkImage(imageUrl))
+                                                as ImageProvider
+                                          : const NetworkImage(
+                                              "https://i.pravatar.cc/150",
+                                            ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Material(
+                                  color: const Color(0xFF2563EB),
+                                  shape: const CircleBorder(),
+                                  child: InkWell(
+                                    onTap: _pickAndUploadImage,
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: Icon(
+                                        Icons.camera_alt,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                          child: ValueListenableBuilder<String?>(
-                            valueListenable:
-                                StudentProfileService.profileImageUrl,
-                            builder: (context, imageUrl, _) {
-                              final isBase64 =
-                                  imageUrl != null &&
-                                  imageUrl.startsWith('data:image');
-                              return CircleAvatar(
-                                radius: 50,
-                                backgroundColor: isDark
-                                    ? Colors.grey.shade800
-                                    : Colors.grey.shade200,
-                                backgroundImage:
-                                    imageUrl != null && imageUrl.isNotEmpty
-                                    ? (isBase64
-                                              ? MemoryImage(
-                                                  base64Decode(
-                                                    imageUrl.split(',').last,
-                                                  ),
-                                                )
-                                              : NetworkImage(imageUrl))
-                                          as ImageProvider
-                                    : const NetworkImage(
-                                        "https://i.pravatar.cc/150",
-                                      ),
-                              );
-                            },
+                          const SizedBox(height: 16),
+                          Text(
+                            _displayName,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: theme.textTheme.bodyLarge?.color,
+                            ),
                           ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Material(
-                            color: const Color(0xFF2563EB),
-                            shape: const CircleBorder(),
-                            child: InkWell(
-                              onTap: _pickAndUploadImage,
-                              child: const Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Icon(
-                                  Icons.camera_alt,
-                                  color: Colors.white,
-                                  size: 20,
+                          const SizedBox(height: 8),
+                          Text(
+                            "Admission No: $_displayAdmissionNo",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: theme.textTheme.bodyMedium?.color,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _displayCampus,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: theme.textTheme.bodyMedium?.color,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // MENU BUTTONS
+                          _MenuButton(
+                            label: _isEditMode
+                                ? "Edit Personal Info"
+                                : "Personal Information",
+                            icon: Icons.person,
+                            isActive:
+                                !_showChangePassword &&
+                                (_isEditMode
+                                    ? _activeEditSection == 'Personal'
+                                    : _activeSection == 'Personal'),
+                            onTap: () => setState(() {
+                              _showChangePassword = false;
+                              if (_isEditMode)
+                                _activeEditSection = 'Personal';
+                              else
+                                _activeSection = 'Personal';
+                            }),
+                          ),
+                          const SizedBox(height: 8),
+                          _MenuButton(
+                            label: _isEditMode
+                                ? "Edit Academic Info"
+                                : "Academic Details",
+                            icon: Icons.school,
+                            isActive:
+                                !_showChangePassword &&
+                                (_isEditMode
+                                    ? _activeEditSection == 'Academic'
+                                    : _activeSection == 'Academic'),
+                            onTap: () => setState(() {
+                              _showChangePassword = false;
+                              if (_isEditMode)
+                                _activeEditSection = 'Academic';
+                              else
+                                _activeSection = 'Academic';
+                            }),
+                          ),
+                          const SizedBox(height: 8),
+                          _MenuButton(
+                            label: _isEditMode
+                                ? "Edit Contact Info"
+                                : "Contact Information",
+                            icon: Icons.contact_mail,
+                            isActive:
+                                !_showChangePassword &&
+                                (_isEditMode
+                                    ? _activeEditSection == 'Contact'
+                                    : _activeSection == 'Contact'),
+                            onTap: () => setState(() {
+                              _showChangePassword = false;
+                              if (_isEditMode)
+                                _activeEditSection = 'Contact';
+                              else
+                                _activeSection = 'Contact';
+                            }),
+                          ),
+                          const SizedBox(height: 8),
+                          if (!_isEditMode)
+                            _MenuButton(
+                              label: "Admission Details",
+                              icon: Icons.description,
+                              isActive:
+                                  !_showChangePassword &&
+                                  _activeSection == 'Admission',
+                              onTap: () => setState(() {
+                                _showChangePassword = false;
+                                _activeSection = 'Admission';
+                              }),
+                            ),
+
+                          // CHANGE PASSWORD BUTTON (New)
+                          const SizedBox(height: 8),
+                          if (!_isEditMode)
+                            _MenuButton(
+                              label: "Change Password",
+                              icon: Icons.lock,
+                              isActive: _showChangePassword,
+                              onTap: () => setState(() {
+                                _showChangePassword = true;
+                                _activeSection = ''; // Clear other sections
+                              }),
+                            ),
+
+                          const SizedBox(height: 24),
+                          // EDIT TOGGLE / CANCEL
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _showChangePassword
+                                  ? () => setState(
+                                      () => _showChangePassword = false,
+                                    )
+                                  : (_isEditMode
+                                        ? _cancelEdit
+                                        : () => setState(() {
+                                            _isEditMode = true;
+                                            _activeEditSection = 'Personal';
+                                            _activeSection = '';
+                                          })),
+                              icon: Icon(
+                                _isEditMode ? Icons.close : Icons.edit_note,
+                                size: 18,
+                              ),
+                              label: Text(
+                                _isEditMode ? "Cancel" : "Edit Profile",
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _isEditMode
+                                    ? Colors.grey.shade600
+                                    : const Color(0xFF2563EB),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _displayName,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: theme.textTheme.bodyLarge?.color,
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Admission No: $_displayAdmissionNo",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: theme.textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _displayCampus,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: theme.textTheme.bodyMedium?.color,
-                      ),
-                    ),
+
+                    // DETAILS / FORM DISPLAY
                     const SizedBox(height: 24),
 
-                    // MENU BUTTONS
-                    _MenuButton(
-                      label: _isEditMode
-                          ? "Edit Personal Info"
-                          : "Personal Information",
-                      icon: Icons.person,
-                      isActive:
-                          !_showChangePassword &&
-                          (_isEditMode
-                              ? _activeEditSection == 'Personal'
-                              : _activeSection == 'Personal'),
-                      onTap: () => setState(() {
-                        _showChangePassword = false;
-                        if (_isEditMode)
-                          _activeEditSection = 'Personal';
-                        else
-                          _activeSection = 'Personal';
-                      }),
-                    ),
-                    const SizedBox(height: 8),
-                    _MenuButton(
-                      label: _isEditMode
-                          ? "Edit Academic Info"
-                          : "Academic Details",
-                      icon: Icons.school,
-                      isActive:
-                          !_showChangePassword &&
-                          (_isEditMode
-                              ? _activeEditSection == 'Academic'
-                              : _activeSection == 'Academic'),
-                      onTap: () => setState(() {
-                        _showChangePassword = false;
-                        if (_isEditMode)
-                          _activeEditSection = 'Academic';
-                        else
-                          _activeSection = 'Academic';
-                      }),
-                    ),
-                    const SizedBox(height: 8),
-                    _MenuButton(
-                      label: _isEditMode
-                          ? "Edit Contact Info"
-                          : "Contact Information",
-                      icon: Icons.contact_mail,
-                      isActive:
-                          !_showChangePassword &&
-                          (_isEditMode
-                              ? _activeEditSection == 'Contact'
-                              : _activeSection == 'Contact'),
-                      onTap: () => setState(() {
-                        _showChangePassword = false;
-                        if (_isEditMode)
-                          _activeEditSection = 'Contact';
-                        else
-                          _activeSection = 'Contact';
-                      }),
-                    ),
-                    const SizedBox(height: 8),
-                    if (!_isEditMode)
-                      _MenuButton(
-                        label: "Admission Details",
-                        icon: Icons.description,
-                        isActive:
-                            !_showChangePassword &&
-                            _activeSection == 'Admission',
-                        onTap: () => setState(() {
-                          _showChangePassword = false;
-                          _activeSection = 'Admission';
-                        }),
+                    if (_showChangePassword)
+                      Container(
+                        constraints: const BoxConstraints(maxWidth: 500),
+                        child: const ChangePasswordForm(),
+                      )
+                    else if (_isEditMode && _activeEditSection.isNotEmpty)
+                      Container(
+                        constraints: const BoxConstraints(maxWidth: 500),
+                        child: _buildEditFormForSection(_activeEditSection),
+                      )
+                    else if (_activeSection.isNotEmpty)
+                      Container(
+                        constraints: const BoxConstraints(maxWidth: 500),
+                        child: _buildDetailsCardForSection(_activeSection),
                       ),
-
-                    // CHANGE PASSWORD BUTTON (New)
-                    const SizedBox(height: 8),
-                    if (!_isEditMode)
-                      _MenuButton(
-                        label: "Change Password",
-                        icon: Icons.lock,
-                        isActive: _showChangePassword,
-                        onTap: () => setState(() {
-                          _showChangePassword = true;
-                          _activeSection = ''; // Clear other sections
-                        }),
-                      ),
-
-                    const SizedBox(height: 24),
-                    // EDIT TOGGLE / CANCEL
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _showChangePassword
-                            ? () => setState(() => _showChangePassword = false)
-                            : (_isEditMode
-                                  ? _cancelEdit
-                                  : () => setState(() {
-                                      _isEditMode = true;
-                                      _activeEditSection = 'Personal';
-                                      _activeSection = '';
-                                    })),
-                        icon: Icon(
-                          _isEditMode ? Icons.close : Icons.edit_note,
-                          size: 18,
-                        ),
-                        label: Text(_isEditMode ? "Cancel" : "Edit Profile"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _isEditMode
-                              ? Colors.grey.shade600
-                              : const Color(0xFF2563EB),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
-
-              // DETAILS / FORM DISPLAY
-              const SizedBox(height: 24),
-
-              if (_showChangePassword)
-                Container(
-                  constraints: const BoxConstraints(maxWidth: 500),
-                  child: const ChangePasswordForm(),
-                )
-              else if (_isEditMode && _activeEditSection.isNotEmpty)
-                Container(
-                  constraints: const BoxConstraints(maxWidth: 500),
-                  child: _buildEditFormForSection(_activeEditSection),
-                )
-              else if (_activeSection.isNotEmpty)
-                Container(
-                  constraints: const BoxConstraints(maxWidth: 500),
-                  child: _buildDetailsCardForSection(_activeSection),
-                ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
