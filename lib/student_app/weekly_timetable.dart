@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:student_app/student_app/full_day_timetable.dart';
 import 'package:student_app/theme_controllers.dart';
 
 class WeeklyTimetablePage extends StatelessWidget {
