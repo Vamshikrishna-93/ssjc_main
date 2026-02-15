@@ -50,7 +50,7 @@ void main() async {
 
   // 🔐 Check Staff Login Status
   final bool isStaffLoggedIn = AppStorage.isLoggedIn();
-  final String initialRoute = isStaffLoggedIn ? '/dashboard' : '/';
+  final String initialRoute = isStaffLoggedIn ? '/dashboard' : '/home';
 
   runApp(SsJcApp(initialRoute: initialRoute));
 }
@@ -81,6 +81,7 @@ class SsJcApp extends StatelessWidget {
 
         getPages: [
           // 🏠 HOME / ROLE SELECTION
+          GetPage(name: '/', page: () => const HomePage()),
           GetPage(name: '/home', page: () => const HomePage()),
 
           // 🔑 AUTH FLOW
