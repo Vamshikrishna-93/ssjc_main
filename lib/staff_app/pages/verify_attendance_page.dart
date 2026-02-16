@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:student_app/staff_app/api/api_service.dart';
 import 'package:student_app/staff_app/controllers/shift_controller.dart';
-import 'package:student_app/staff_app/model/model1.dart';
+import 'package:student_app/staff_app/model/attendance_record_model.dart';
 import '../controllers/branch_controller.dart';
 import '../model/branch_model.dart';
 
@@ -323,19 +323,37 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
   // ================= BUTTON =================
   Widget _buildVerifyButton(bool isDark) {
     return SizedBox(
-      height: 50,
+      height: 56,
+      width: double.infinity,
       child: ElevatedButton(
         onPressed: isLoading ? null : _fetchAttendanceData,
         style: ElevatedButton.styleFrom(
           backgroundColor: isDark
-              ? Colors.cyanAccent
+              ? const Color(0xFF1FFFE0)
               : Theme.of(context).primaryColor,
-          foregroundColor: isDark ? Colors.black : Colors.white,
+          foregroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
         ),
-        child: const Text(
-          "Verify Attendance",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.black,
+                ),
+              )
+            : const Text(
+                "VERIFY ATTENDANCE",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  fontSize: 16,
+                ),
+              ),
       ),
     );
   }
@@ -347,47 +365,134 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
       child: Column(
         children: attendanceData.map((record) {
           return Container(
-            margin: const EdgeInsets.only(bottom: 14),
-            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(16),
+              color: isDark ? Colors.white.withOpacity(0.08) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isDark ? Colors.white24 : Colors.grey.shade300,
+                color: isDark
+                    ? Colors.white.withOpacity(0.15)
+                    : Colors.grey.shade200,
               ),
+              boxShadow: isDark
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 🔹 Batch Name
-                Text(
-                  record.batch,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        record.batch,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ),
+                    _badge(
+                      label: "Shift Wise",
+                      color: isDark
+                          ? const Color(0xFF1FFFE0)
+                          : Theme.of(context).primaryColor,
+                      isDark: isDark,
+                    ),
+                  ],
                 ),
-
-                const SizedBox(height: 14),
-                _statRow("Total", record.total, Colors.blue, isDark: isDark),
-
-                _statRow(
-                  "Present",
-                  record.present,
-                  record.present > 0 ? Colors.green : Colors.greenAccent,
-                  isDark: isDark,
-                  highlight: true,
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _statItem(
+                        "TOTAL",
+                        record.total,
+                        Colors.blue,
+                        isDark,
+                      ),
+                    ),
+                    Expanded(
+                      child: _statItem(
+                        "PRESENT",
+                        record.present,
+                        Colors.green,
+                        isDark,
+                      ),
+                    ),
+                    Expanded(
+                      child: _statItem(
+                        "ABSENT",
+                        record.absent,
+                        Colors.red,
+                        isDark,
+                      ),
+                    ),
+                  ],
                 ),
-
-                _statRow("Absent", record.absent, Colors.red, isDark: isDark),
               ],
             ),
           );
         }).toList(),
       ),
+    );
+  }
+
+  Widget _badge({
+    required String label,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _statItem(String label, int value, Color color, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: isDark ? Colors.white54 : Colors.grey.shade600,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value.toString(),
+          style: TextStyle(
+            color: color,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     );
   }
 
@@ -420,43 +525,4 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
       child: Center(child: CircularProgressIndicator()),
     );
   }
-}
-
-Widget _statRow(
-  String label,
-  int value,
-  Color color, {
-  required bool isDark,
-  bool highlight = false,
-}) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: isDark ? Colors.white70 : Colors.black54,
-            ),
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: highlight ? color.withOpacity(0.9) : color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            value.toString(),
-            style: TextStyle(
-              color: highlight ? Colors.white : color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
 }

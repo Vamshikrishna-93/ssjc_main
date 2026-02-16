@@ -16,6 +16,7 @@ class ApiCollection {
   static String shiftsByBranch(int branchId) => "/shiftlistbybranch/$branchId";
   static String studentByAdmNo(String admNo) =>
       "/getstudentdetailsbysearch/$admNo";
+  static const String categoryList = "/categorylist";
 
   // ================= OUTING =================
   static const String outingList =

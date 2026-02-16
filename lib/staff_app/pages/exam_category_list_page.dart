@@ -42,14 +42,10 @@ class _ExamCategoryListPageState extends State<ExamCategoryListPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(
-          color: isDark ? Colors.white : Colors.black,
-        ),
+        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black),
         title: Text(
           "Exam Categories",
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black,
-          ),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black),
         ),
       ),
 
@@ -72,13 +68,12 @@ class _ExamCategoryListPageState extends State<ExamCategoryListPage> {
                 // ================= SEARCH =================
                 TextField(
                   onChanged: (v) => setState(() => _query = v),
-                  style: TextStyle(
-                    color: isDark ? Colors.white : Colors.black,
-                  ),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     filled: true,
-                    fillColor:
-                        isDark ? Colors.white.withOpacity(0.12) : Colors.white,
+                    fillColor: isDark
+                        ? Colors.white.withOpacity(0.12)
+                        : Colors.white,
                     hintText: "Search category...",
                     hintStyle: TextStyle(
                       color: isDark ? Colors.white60 : Colors.grey,
@@ -121,15 +116,17 @@ class _ExamCategoryListPageState extends State<ExamCategoryListPage> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    items: branchCtrl.branches
-                        .map<DropdownMenuItem<int>>((BranchModel b) {
+                    items: branchCtrl.branches.map<DropdownMenuItem<int>>((
+                      BranchModel b,
+                    ) {
                       return DropdownMenuItem<int>(
                         value: b.id,
                         child: Text(
                           b.branchName,
                           style: TextStyle(
-                            color:
-                                isDark ? Colors.white : Colors.black, // ✅ FIX
+                            color: isDark
+                                ? Colors.white
+                                : Colors.black, // ✅ FIX
                           ),
                         ),
                       );
@@ -148,9 +145,7 @@ class _ExamCategoryListPageState extends State<ExamCategoryListPage> {
                 Expanded(
                   child: Obx(() {
                     if (categoryCtrl.isLoading.value) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
+                      return const Center(child: CircularProgressIndicator());
                     }
 
                     if (selectedBranchId == null) {
@@ -166,12 +161,13 @@ class _ExamCategoryListPageState extends State<ExamCategoryListPage> {
                     }
 
                     final filtered = categoryCtrl.categories.where((c) {
-                      final matchesSearch = c['category']
-                          .toString()
-                          .toLowerCase()
-                          .contains(_query.toLowerCase());
+                      final matchesSearch = c.category.toLowerCase().contains(
+                        _query.toLowerCase(),
+                      );
 
-                      final matchesBranch = c['branch_id'] == selectedBranchId;
+                      final matchesBranch =
+                          selectedBranchId == null ||
+                          c.branchId == selectedBranchId;
 
                       return matchesSearch && matchesBranch;
                     }).toList();
@@ -232,7 +228,9 @@ class _ExamCategoryListPageState extends State<ExamCategoryListPage> {
                                     ),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 5),
+                                        horizontal: 12,
+                                        vertical: 5,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: Colors.green.withOpacity(0.2),
                                         borderRadius: BorderRadius.circular(20),
@@ -248,8 +246,8 @@ class _ExamCategoryListPageState extends State<ExamCategoryListPage> {
                                   ],
                                 ),
                                 const Divider(height: 24),
-                                _infoRow("Category", item['category'], isDark),
-                                _infoRow("Branch", item['branch_name'], isDark),
+                                _infoRow("Category", item.category, isDark),
+                                _infoRow("Branch", item.branchName, isDark),
                                 const SizedBox(height: 12),
                               ],
                             ),
@@ -285,9 +283,7 @@ class _ExamCategoryListPageState extends State<ExamCategoryListPage> {
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                color: isDark ? Colors.white70 : Colors.black54,
-              ),
+              style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
             ),
           ),
         ],

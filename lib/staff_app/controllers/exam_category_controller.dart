@@ -1,9 +1,10 @@
 import 'package:get/get.dart';
 import '../api/api_service.dart';
+import '../model/exam_category_model.dart';
 
 class ExamCategoryController extends GetxController {
   RxBool isLoading = false.obs;
-  RxList<Map<String, dynamic>> categories = <Map<String, dynamic>>[].obs;
+  RxList<ExamCategory> categories = <ExamCategory>[].obs;
 
   @override
   void onInit() {
@@ -15,16 +16,11 @@ class ExamCategoryController extends GetxController {
     try {
       isLoading.value = true;
 
-      // ✅ CORRECT METHOD NAME
-      final response = await ApiService.getRequest('/categorylist');
+      final response = await ApiService.getExamCategories();
 
-      if (response['success'] == "true") {
-        categories.assignAll(
-          List<Map<String, dynamic>>.from(response['indexdata']),
-        );
-      } else {
-        categories.clear();
-      }
+      categories.assignAll(
+        response.map((e) => ExamCategory.fromJson(e)).toList(),
+      );
     } catch (e) {
       print("Category API Error: $e");
       categories.clear();

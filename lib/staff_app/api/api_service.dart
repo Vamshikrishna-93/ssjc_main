@@ -176,6 +176,18 @@ class ApiService {
     throw Exception("Failed to load departments");
   }
 
+  // ================= EXAM CATEGORIES =================
+  static Future<List<Map<String, dynamic>>> getExamCategories() async {
+    final res = await getRequest(ApiCollection.categoryList);
+
+    if ((res["success"] == true || res["success"] == "true") &&
+        res["indexdata"] != null) {
+      return List<Map<String, dynamic>>.from(res["indexdata"]);
+    }
+
+    throw Exception("Failed to load exam categories");
+  }
+
   // ================= HOSTELS BY BRANCH =================
   static Future<List<Map<String, dynamic>>> getHostelsByBranch(
     int branchId,
