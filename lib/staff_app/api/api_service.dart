@@ -148,6 +148,22 @@ class ApiService {
     throw Exception("Student not found");
   }
 
+  // ================= GET FULL STUDENT DETAILS =================
+  static Future<Map<String, dynamic>> getStudentDetailsByAdmNo(
+    String admNo,
+  ) async {
+    final res = await getRequest(ApiCollection.studentByAdmNo(admNo));
+
+    if ((res["success"] == true || res["success"] == "true") &&
+        res["indexdata"] != null &&
+        res["indexdata"] is List &&
+        (res["indexdata"] as List).isNotEmpty) {
+      return (res["indexdata"] as List<dynamic>).first as Map<String, dynamic>;
+    }
+
+    throw Exception("Student not found");
+  }
+
   // ================= DEPARTMENTS =================
   static Future<List<Map<String, dynamic>>> getDepartmentsList() async {
     final res = await getRequest(ApiCollection.departmentsList);
@@ -677,5 +693,55 @@ class ApiService {
     }
 
     throw Exception("Failed to load non-hostel students");
+  }
+
+  // ================= SAVE HOSTEL BUILDING =================
+  static Future<void> saveHostelBuilding({
+    required String buildingName,
+    required String category,
+    required String address,
+    required int inchargeId,
+    required int branchId,
+    required int status, // 1 for Active, 0 for Inactive
+  }) async {
+    final String? token = _box.read<String>("token");
+
+    if (token == null || token.isEmpty) {
+      throw Exception("Session expired. Please login again.");
+    }
+
+    final Uri url = Uri.parse(ApiCollection.baseUrl + ApiCollection.saveHostel);
+
+    final Map<String, dynamic> body = {
+      "buildingname": buildingName,
+      "category": category,
+      "address": address,
+      "incharge": inchargeId,
+      "branch_id": branchId,
+      "status": status,
+    };
+
+    debugPrint("SAVE HOSTEL REQUEST: $body");
+
+    final response = await http
+        .post(url, headers: _authHeaders(token), body: jsonEncode(body))
+        .timeout(const Duration(seconds: 20));
+
+    debugPrint("SAVE HOSTEL RESPONSE: ${response.body}");
+
+    if (response.statusCode != 200) {
+      throw Exception("Server error: ${response.statusCode}");
+    }
+
+    final decoded = jsonDecode(response.body);
+
+    final isSuccess =
+        decoded["success"] == true ||
+        decoded["success"] == "true" ||
+        decoded["success"] == 1;
+
+    if (!isSuccess) {
+      throw Exception(decoded["message"] ?? "Failed to save hostel building");
+    }
   }
 }

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:student_app/staff_app/controllers/auth_controller.dart';
 import 'package:student_app/staff_app/controllers/theme_controller.dart';
+import 'package:student_app/staff_app/controllers/search_controller.dart'
+    as search;
 import 'package:student_app/staff_app/pages/profile_page.dart';
+import 'package:student_app/staff_app/pages/student_details_page.dart';
 
 class HomeDashboardPage extends StatefulWidget {
   const HomeDashboardPage({super.key});
@@ -14,7 +17,10 @@ class HomeDashboardPage extends StatefulWidget {
 class _HomeDashboardPageState extends State<HomeDashboardPage> {
   bool showSearch = false;
   bool isGridMenuOpen = false;
+  bool showSearchDropdown = false;
   String selectedYear = "2025-2026";
+  final searchCtrl = Get.put(search.SearchController());
+  final TextEditingController searchTextCtrl = TextEditingController();
 
   final List<String> years = [
     "2023-2024",
@@ -58,7 +64,12 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
         backgroundColor: Colors.transparent,
         drawer: _buildDrawer(),
         appBar: _buildAppBar(context),
-        body: _buildDashboardBody(),
+        body: Stack(
+          children: [
+            _buildDashboardBody(),
+            if (showSearchDropdown) _buildSearchDropdown(context),
+          ],
+        ),
       ),
     );
   }
@@ -139,6 +150,20 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
       ),
 
       actions: [
+        // 🔍 SEARCH ICON
+        IconButton(
+          tooltip: "Search Student",
+          icon: Icon(Icons.search, color: iconColor),
+          onPressed: () {
+            setState(() {
+              showSearchDropdown = !showSearchDropdown;
+              if (!showSearchDropdown) {
+                searchCtrl.clearSearch();
+                searchTextCtrl.clear();
+              }
+            });
+          },
+        ),
         // 🌙 THEME TOGGLE
         Obx(
           () => IconButton(
@@ -334,6 +359,222 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
             ),
             Icon(icon, color: Colors.white, size: 40),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ================= SEARCH DROPDOWN =================
+
+  Widget _buildSearchDropdown(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            showSearchDropdown = false;
+            searchCtrl.clearSearch();
+            searchTextCtrl.clear();
+          });
+        },
+        child: Container(
+          color: Colors.black54,
+          child: GestureDetector(
+            onTap: () {}, // Prevent closing when tapping inside
+            child: Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? const [Color(0xFF1a1a2e), Color(0xFF16213e)]
+                      : const [Color(0xFFFFFFFF), Color(0xFFF5F6FA)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Search Input Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: searchTextCtrl,
+                          decoration: InputDecoration(
+                            hintText: 'Enter Admission ID',
+                            prefixIcon: const Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: Theme.of(context).cardColor,
+                          ),
+                          onSubmitted: (value) {
+                            if (value.isNotEmpty) {
+                              searchCtrl.searchStudent(value);
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (searchTextCtrl.text.isNotEmpty) {
+                            searchCtrl.searchStudent(searchTextCtrl.text);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6366f1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Icon(Icons.search, color: Colors.white),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Loading Indicator
+                  Obx(() {
+                    if (searchCtrl.isLoading.value) {
+                      return const Padding(
+                        padding: EdgeInsets.all(20),
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+
+                    // Error Message
+                    if (searchCtrl.errorMessage.value.isNotEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          searchCtrl.errorMessage.value,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    }
+
+                    // Search Results
+                    if (searchCtrl.searchResults.isNotEmpty) {
+                      return Container(
+                        constraints: const BoxConstraints(maxHeight: 400),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: searchCtrl.searchResults.length,
+                          itemBuilder: (context, index) {
+                            final student = searchCtrl.searchResults[index];
+                            return InkWell(
+                              onTap: () {
+                                setState(() {
+                                  showSearchDropdown = false;
+                                });
+                                Get.to(
+                                  () => StudentDetailsPage(student: student),
+                                );
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF6366f1),
+                                      Color(0xFF818cf8),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            '${student.admNo}/${student.sFirstName} ${student.sLastName}/${student.fatherName}/${student.branchName}/${student.groupName}/${student.batch}',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                student.status.toLowerCase() ==
+                                                    'active'
+                                                ? Colors.green
+                                                : Colors.red,
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            student.status.toUpperCase(),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }
+
+                    return const SizedBox.shrink();
+                  }),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

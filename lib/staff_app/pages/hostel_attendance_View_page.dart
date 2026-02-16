@@ -317,8 +317,17 @@ class _HostelAttendanceFilterPageState
                             Get.snackbar("Error", "Please select all filters");
                             return;
                           }
-                          // TODO: Navigate to Mark Attendance Page
-                          Get.snackbar("Info", "Marking page coming soon");
+                          // Navigate to Add Hostel Attendance Page
+                          Get.toNamed(
+                            '/addHostelAttendance',
+                            arguments: {
+                              'branch': _branch,
+                              'hostel': _hostel,
+                              'floor': _floor,
+                              'room': _room,
+                              'month': _selectedMonthName,
+                            },
+                          );
                         },
                       ),
                     ),

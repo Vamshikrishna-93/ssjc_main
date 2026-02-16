@@ -37,6 +37,7 @@ import 'package:student_app/staff_app/pages/hostel_attendance_result_page.dart';
 import 'package:student_app/staff_app/pages/fee_head_page.dart';
 import 'package:student_app/staff_app/pages/assign_students_page.dart';
 import 'package:student_app/staff_app/pages/hostel_list_page.dart';
+import 'package:student_app/staff_app/pages/add_hostel_attendance_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -148,6 +149,19 @@ class SsJcApp extends StatelessWidget {
           GetPage(
             name: '/hostelAttendanceResult',
             page: () => const HostelAttendanceResultPage(),
+          ),
+          GetPage(
+            name: '/addHostelAttendance',
+            page: () {
+              final args = Get.arguments as Map<String, dynamic>?;
+              return AddHostelAttendancePage(
+                branch: args?['branch'],
+                hostel: args?['hostel'],
+                floor: args?['floor'],
+                room: args?['room'],
+                month: args?['month'],
+              );
+            },
           ),
           GetPage(
             name: '/assignStudents',

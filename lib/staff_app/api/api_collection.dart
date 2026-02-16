@@ -36,6 +36,7 @@ class ApiCollection {
   static String feeHeadsByBranch(int branchId) => "/feeheadsbybranch/$branchId";
   static String getHostelsByBranch(int branchId) =>
       "/gethostelsbybranch/$branchId";
+  static const String saveHostel = "/savehostel";
 
   // ================= MONTHLY ATTENDANCE (ACADEMIC) =================
   static String monthlyAttendance({

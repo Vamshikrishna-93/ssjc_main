@@ -232,21 +232,24 @@ class _HostelListPageState extends State<HostelListPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      statusText,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        statusText,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
@@ -372,28 +375,40 @@ class _HostelListPageState extends State<HostelListPage> {
 
                 const SizedBox(height: 16),
                 _buildLabel("Incharge *", isDark),
-                Obx(
-                  () => _buildDropdown(
-                    [
-                      "Select Staff",
-                      ...staffCtrl.staffList.map((s) => s.designation),
-                    ],
+                Obx(() {
+                  // Create unique strings for each staff to avoid assertion errors
+                  final staffItems = [
+                    "Select Staff",
+                    ...staffCtrl.staffList.map(
+                      (s) => "${s.designation} (${s.id})",
+                    ),
+                  ];
+
+                  // Find the current staff string based on the selected ID
+                  final currentStaff = staffCtrl.staffList.firstWhereOrNull(
+                    (s) => s.id == selectedIncharge.value,
+                  );
+                  final dropdownValue = (currentStaff != null)
+                      ? "${currentStaff.designation} (${currentStaff.id})"
+                      : "Select Staff";
+
+                  return _buildDropdown(
+                    staffItems,
                     isDark,
-                    value:
-                        staffCtrl.staffList
-                            .firstWhereOrNull(
-                              (s) => s.id == selectedIncharge.value,
-                            )
-                            ?.designation ??
-                        "Select Staff",
+                    value: dropdownValue,
                     onChanged: (val) {
-                      final s = staffCtrl.staffList.firstWhereOrNull(
-                        (s) => s.designation == val,
-                      );
-                      selectedIncharge.value = s?.id;
+                      if (val == "Select Staff") {
+                        selectedIncharge.value = null;
+                      } else {
+                        // Extract ID from the string "Designation (ID)"
+                        final idMatch = RegExp(r'\((\d+)\)$').firstMatch(val!);
+                        if (idMatch != null) {
+                          selectedIncharge.value = int.parse(idMatch.group(1)!);
+                        }
+                      }
                     },
-                  ),
-                ),
+                  );
+                }),
 
                 const SizedBox(height: 16),
                 _buildLabel("Branch *", isDark),

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../api/api_service.dart';
+import '../controllers/branch_controller.dart';
+import '../controllers/staff_controller.dart';
+import '../controllers/hostel_controller.dart';
 
 class AddHostelPage extends StatefulWidget {
   const AddHostelPage({super.key});
@@ -11,13 +15,17 @@ class AddHostelPage extends StatefulWidget {
 class _AddHostelPageState extends State<AddHostelPage> {
   final _formKey = GlobalKey<FormState>();
 
+  final BranchController branchCtrl = Get.find<BranchController>();
+  final StaffController staffCtrl = Get.find<StaffController>();
+
   final TextEditingController _buildingCtrl = TextEditingController();
   final TextEditingController _addressCtrl = TextEditingController();
 
-  String? _category;
-  String? _incharge;
-  String? _branch;
-  String? _status;
+  final RxnString _category = RxnString();
+  final RxnInt _selectedInchargeId = RxnInt();
+  final RxnInt _selectedBranchId = RxnInt();
+  final RxnString _status = RxnString();
+  final RxBool _isSaving = false.obs;
 
   // ---------------- COLORS ----------------
   static const Color dark1 = Color(0xFF1a1a2e);
@@ -123,14 +131,19 @@ class _AddHostelPageState extends State<AddHostelPage> {
                         ),
                         const SizedBox(height: 20),
 
-                        _dropdownField(
-                          context,
-                          label: "Category",
-                          value: _category,
-                          icon: Icons.male,
-                          items: const ["Boys", "Girls"],
-                          innerIcons: genderIcons,
-                          onChanged: (v) => setState(() => _category = v),
+                        Obx(
+                          () => _dropdownField(
+                            context,
+                            label: "Category",
+                            value: _category.value,
+                            icon: Icons.home,
+                            items: const ["BOYS HOSTEL", "GIRLS HOSTEL"],
+                            innerIcons: {
+                              "BOYS HOSTEL": Icons.male,
+                              "GIRLS HOSTEL": Icons.female,
+                            },
+                            onChanged: (v) => _category.value = v,
+                          ),
                         ),
                         const SizedBox(height: 20),
 
@@ -142,68 +155,108 @@ class _AddHostelPageState extends State<AddHostelPage> {
                         ),
                         const SizedBox(height: 20),
 
-                        _dropdownField(
-                          context,
-                          label: "Incharge *",
-                          value: _incharge,
-                          icon: Icons.person,
-                          items: const ["Staff1", "Staff2"],
-                          onChanged: (v) => setState(() => _incharge = v),
+                        Obx(
+                          () => _dropdownField(
+                            context,
+                            label: "Incharge *",
+                            value:
+                                staffCtrl.staffList.firstWhereOrNull(
+                                      (s) => s.id == _selectedInchargeId.value,
+                                    ) !=
+                                    null
+                                ? "${staffCtrl.staffList.firstWhere((s) => s.id == _selectedInchargeId.value).designation} (${_selectedInchargeId.value})"
+                                : null,
+                            icon: Icons.person,
+                            items: staffCtrl.staffList
+                                .map((s) => "${s.designation} (${s.id})")
+                                .toList(),
+                            onChanged: (v) {
+                              if (v != null) {
+                                final idMatch = RegExp(
+                                  r'\((\d+)\)$',
+                                ).firstMatch(v);
+                                if (idMatch != null) {
+                                  _selectedInchargeId.value = int.parse(
+                                    idMatch.group(1)!,
+                                  );
+                                }
+                              }
+                            },
+                          ),
                         ),
                         const SizedBox(height: 20),
 
-                        _dropdownField(
-                          context,
-                          label: "Branch *",
-                          value: _branch,
-                          icon: Icons.account_tree,
-                          items: const ["EAMCET", "NEET"],
-                          innerIcons: branchIcons,
-                          onChanged: (v) => setState(() => _branch = v),
+                        Obx(
+                          () => _dropdownField(
+                            context,
+                            label: "Branch *",
+                            value: branchCtrl.branches
+                                .firstWhereOrNull(
+                                  (b) => b.id == _selectedBranchId.value,
+                                )
+                                ?.branchName,
+                            icon: Icons.account_tree,
+                            items: branchCtrl.branches
+                                .map((b) => b.branchName)
+                                .toList(),
+                            innerIcons: branchIcons,
+                            onChanged: (v) {
+                              final b = branchCtrl.branches.firstWhereOrNull(
+                                (b) => b.branchName == v,
+                              );
+                              _selectedBranchId.value = b?.id;
+                            },
+                          ),
                         ),
                         const SizedBox(height: 20),
 
-                        _dropdownField(
-                          context,
-                          label: "Status",
-                          value: _status,
-                          icon: Icons.toggle_on,
-                          items: const ["Active", "Inactive"],
-                          onChanged: (v) => setState(() => _status = v),
+                        Obx(
+                          () => _dropdownField(
+                            context,
+                            label: "Status",
+                            value: _status.value,
+                            icon: Icons.toggle_on,
+                            items: const ["Active", "Inactive"],
+                            onChanged: (v) => _status.value = v,
+                          ),
                         ),
                         const SizedBox(height: 30),
 
                         // ================= SUBMIT BUTTON =================
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.check_circle),
-                            label: const Text(
-                              "Add Hostel",
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
+                        Obx(
+                          () => SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.check_circle),
+                              label: _isSaving.value
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.black,
+                                      ),
+                                    )
+                                  : const Text(
+                                      "Add Hostel",
+                                      style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: neon,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                elevation: 15,
                               ),
+                              onPressed: _isSaving.value ? null : _submit,
                             ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: neon,
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              elevation: 15,
-                            ),
-                            onPressed: () {
-                              if (_formKey.currentState!.validate()) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content:
-                                        Text('Hostel added (dummy action)'),
-                                  ),
-                                );
-                              }
-                            },
                           ),
                         ),
                       ],
@@ -216,6 +269,60 @@ class _AddHostelPageState extends State<AddHostelPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_category.value == null ||
+        _selectedInchargeId.value == null ||
+        _selectedBranchId.value == null ||
+        _status.value == null) {
+      Get.snackbar(
+        "Error",
+        "Please fill all fields",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    try {
+      _isSaving.value = true;
+
+      await ApiService.saveHostelBuilding(
+        buildingName: _buildingCtrl.text,
+        category: _category.value!,
+        address: _addressCtrl.text,
+        inchargeId: _selectedInchargeId.value!,
+        branchId: _selectedBranchId.value!,
+        status: _status.value == "Active" ? 1 : 0,
+      );
+
+      Get.snackbar(
+        "Success",
+        "Hostel building added successfully",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+
+      // Refresh hostel list and go back
+      Get.find<HostelController>().loadHostelsByBranch(
+        _selectedBranchId.value!,
+      );
+      Get.back();
+    } catch (e) {
+      Get.snackbar(
+        "Error",
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+    } finally {
+      _isSaving.value = false;
+    }
   }
 
   // ================= INPUT FIELD =================
@@ -290,6 +397,7 @@ class _AddHostelPageState extends State<AddHostelPage> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: value,
           dropdownColor: isDark ? dark3 : Theme.of(context).cardColor,
           decoration: const InputDecoration(border: InputBorder.none),
@@ -301,6 +409,26 @@ class _AddHostelPageState extends State<AddHostelPage> {
               fontSize: 14,
             ),
           ),
+          selectedItemBuilder: (context) {
+            return items.map((e) {
+              return Row(
+                children: [
+                  Icon(innerIcons?[e] ?? icon, color: neon, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      e,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontSize: 14,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              );
+            }).toList();
+          },
           items: items.map((e) {
             return DropdownMenuItem(
               value: e,
@@ -308,10 +436,13 @@ class _AddHostelPageState extends State<AddHostelPage> {
                 children: [
                   Icon(innerIcons?[e] ?? icon, color: neon, size: 18),
                   const SizedBox(width: 8),
-                  Text(
-                    e,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black,
+                  Expanded(
+                    child: Text(
+                      e,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
