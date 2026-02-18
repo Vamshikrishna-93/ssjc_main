@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:student_app/staff_app/controllers/hostel_controller.dart';
 import '../controllers/branch_controller.dart';
 
+import 'hostel_attendance_status_page.dart';
+
 class HostelAttendanceFilterPage extends StatefulWidget {
   const HostelAttendanceFilterPage({super.key});
 
@@ -18,26 +20,10 @@ class _HostelAttendanceFilterPageState
   String? _hostel;
   String? _floor;
   String? _room;
-  String _month = '11';
-  String? _selectedMonthName = 'November';
+  DateTime _selectedDate = DateTime.now();
 
   final BranchController branchCtrl = Get.put(BranchController());
   final HostelController hostelCtrl = Get.put(HostelController());
-
-  final Map<String, String> monthMap = {
-    "January": "01",
-    "February": "02",
-    "March": "03",
-    "April": "04",
-    "May": "05",
-    "June": "06",
-    "July": "07",
-    "August": "08",
-    "September": "09",
-    "October": "10",
-    "November": "11",
-    "December": "12",
-  };
 
   // DARK COLORS
   static const Color dark1 = Color(0xFF1a1a2e);
@@ -207,10 +193,15 @@ class _HostelAttendanceFilterPageState
                     iconColor: Colors.blueAccent,
                     value: _floor,
                     items: hostelCtrl.floors,
-                    onChanged: (v) => setState(() {
-                      _floor = v;
-                      _room = null;
-                    }),
+                    onChanged: (v) {
+                      setState(() {
+                        _floor = v;
+                        _room = null;
+                      });
+                      if (v != null) {
+                        hostelCtrl.filterRoomsByFloor(v);
+                      }
+                    },
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -229,20 +220,26 @@ class _HostelAttendanceFilterPageState
                 ),
                 const SizedBox(height: 14),
 
-                // MONTH
-                _neonDropdown(
+                // DATE
+                _neonDatePicker(
                   context,
-                  label: "Select Month",
-                  icon: Icons.calendar_month,
-                  iconColor: Colors.orangeAccent,
-                  value: _selectedMonthName,
-                  items: monthMap.keys.toList(),
-                  onChanged: (v) => setState(() {
-                    _selectedMonthName = v;
-                    _month = monthMap[v!]!;
-                    debugPrint("Selected Month Index: $_month");
-                  }),
+                  label: "Select Date",
+                  icon: Icons.event,
+                  iconColor: Colors.lightBlueAccent,
+                  value: _selectedDate,
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                    );
+                    if (picked != null) {
+                      setState(() => _selectedDate = picked);
+                    }
+                  },
                 ),
+                const SizedBox(height: 14),
                 const SizedBox(height: 24),
 
                 // GET STUDENTS BUTTON
@@ -288,7 +285,7 @@ class _HostelAttendanceFilterPageState
 
                               await hostelCtrl.loadRoomAttendanceSummary(
                                 branch: _branch!,
-                                date: DateTime.now().toIso8601String().split(
+                                date: _selectedDate.toIso8601String().split(
                                   'T',
                                 )[0],
                                 hostel: _hostel!,
@@ -325,7 +322,9 @@ class _HostelAttendanceFilterPageState
                               'hostel': _hostel,
                               'floor': _floor,
                               'room': _room,
-                              'month': _selectedMonthName,
+                              'date': _selectedDate.toIso8601String().split(
+                                'T',
+                              )[0],
                             },
                           );
                         },
@@ -337,14 +336,92 @@ class _HostelAttendanceFilterPageState
                         label: "Check Status",
                         icon: Icons.check_circle,
                         color: Colors.blueAccent,
-                        onTap: () {},
+                        onTap: () async {
+                          if (_branch == null || _hostel == null) {
+                            Get.snackbar(
+                              "Warning",
+                              "Select Branch and Hostel",
+                              backgroundColor: Colors.orange,
+                              colorText: Colors.white,
+                            );
+                            return;
+                          }
+
+                          await hostelCtrl.loadRoomAttendanceSummary(
+                            branch: _branch!,
+                            date: _selectedDate.toIso8601String().split('T')[0],
+                            hostel: _hostel!,
+                            floor: _floor ?? 'All',
+                            room: _room ?? 'All',
+                          );
+
+                          Get.to(() => const HostelAttendanceStatusPage());
+                        },
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: 18),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // ---------------- DATE PICKER ----------------
+  Widget _neonDatePicker(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required Color iconColor,
+    required DateTime value,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withOpacity(0.08)
+              : Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDark ? Colors.white24 : Theme.of(context).dividerColor,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: iconColor),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "${value.day}/${value.month}/${value.year}",
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.calendar_today, size: 18, color: neon.withOpacity(0.7)),
+          ],
         ),
       ),
     );

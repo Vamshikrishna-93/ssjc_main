@@ -4,6 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:get_storage/get_storage.dart';
 import '../api/api_collection.dart';
 import '../model/non_hostel_student_model.dart';
+import '../model/hostel_student_model.dart';
+import '../model/room_attendance_model.dart';
+import '../model/hostel_grid_model.dart';
 
 class ApiService {
   ApiService._();
@@ -114,6 +117,46 @@ class ApiService {
     try {
       final response = await http
           .get(url, headers: _authHeaders(token))
+          .timeout(const Duration(seconds: 20));
+
+      final decoded = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return decoded;
+      }
+
+      if (response.statusCode == 401) {
+        _box.remove("token");
+        _box.remove("user_id");
+        throw Exception("Unauthorized");
+      }
+
+      throw Exception("API Error ${response.statusCode}: ${response.body}");
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // ================= AUTH POST =================
+  static Future<dynamic> postRequest(
+    String endpoint, {
+    Map<String, dynamic>? body,
+  }) async {
+    final String? token = _box.read<String>("token");
+
+    if (token == null || token.isEmpty) {
+      throw Exception("Session expired. Please login again.");
+    }
+
+    final Uri url = Uri.parse(ApiCollection.baseUrl + endpoint);
+
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: _authHeaders(token),
+            body: body != null ? jsonEncode(body) : null,
+          )
           .timeout(const Duration(seconds: 20));
 
       final decoded = jsonDecode(response.body);
@@ -450,8 +493,22 @@ class ApiService {
   }
 
   // ================= OUTING LIST (RAW RESPONSE) =================
-  static Future<Map<String, dynamic>> getOutingListRaw() async {
-    final res = await getRequest(ApiCollection.outingList);
+  static Future<Map<String, dynamic>> getOutingListRaw({
+    String? branch,
+    String? reportType,
+    String? daybookFilter,
+    String? firstDate,
+    String? nextDate,
+  }) async {
+    final res = await getRequest(
+      ApiCollection.outingList(
+        branch: branch,
+        reportType: reportType,
+        daybookFilter: daybookFilter,
+        firstDate: firstDate,
+        nextDate: nextDate,
+      ),
+    );
 
     if ((res["success"] == true || res["success"] == "true")) {
       return res;
@@ -475,7 +532,7 @@ class ApiService {
   // ================= HOSTEL ATTENDANCE (NEW) =================
 
   /// 1️⃣ Get students for a room (to mark attendance)
-  static Future<List<Map<String, dynamic>>> getRoomStudentsAttendance({
+  static Future<List<HostelStudentModel>> getRoomStudentsAttendance({
     required String shift,
     required String date,
     required String param, // room id
@@ -493,8 +550,10 @@ class ApiService {
     if ((res["success"] == true ||
             res["success"] == "true" ||
             res["success"] == 1) &&
-        res["indexdata"] != null) {
-      return List<Map<String, dynamic>>.from(res["indexdata"]);
+        res["hostelData"] != null) {
+      return (res["hostelData"] as List)
+          .map((e) => HostelStudentModel.fromJson(e))
+          .toList();
     }
 
     return [];
@@ -542,25 +601,59 @@ class ApiService {
     required String floor,
     required String room,
   }) async {
-    final endpoint = ApiCollection.roomsAttendance(
-      branch: branch,
-      date: date,
-      hostel: hostel,
-      floor: floor,
-      room: room,
+    final res = await postRequest(
+      ApiCollection.roomsAttendanceEndpoint,
+      body: {
+        "branch": branch,
+        "date": date,
+        "hostel": hostel,
+        "floor": floor,
+        "room": room,
+      },
     );
-
-    final res = await getRequest(endpoint);
 
     debugPrint("ROOMS ATTENDANCE SUMMARY RESPONSE: $res");
 
+    if (res["rooms"] != null && res["rooms"] is List) {
+      return List<Map<String, dynamic>>.from(res["rooms"]);
+    }
+
+    return [];
+  }
+
+  /// 4️⃣ Get detailed room attendance (student-wise)
+  static Future<List<RoomAttendanceModel>> getRoomAttendanceDetails({
+    required String roomId,
+  }) async {
+    final res = await getRequest(
+      ApiCollection.getRoomAttendance(roomId: roomId),
+    );
+
+    debugPrint("ROOM ATTENDANCE DETAILS RESPONSE: $res");
+
     if ((res["success"] == true ||
-            res["success"] == "true" ||
+            res["success"] ==
+                "ture" || // Backend typo "ture" in Postman screenshot 3
             res["success"] == 1) &&
-        res["indexdata"] != null) {
-      if (res["indexdata"] is List) {
-        return List<Map<String, dynamic>>.from(res["indexdata"]);
-      }
+        res["attendanceData"] != null) {
+      return (res["attendanceData"] as List)
+          .map((e) => RoomAttendanceModel.fromJson(e))
+          .toList();
+    }
+
+    return [];
+  }
+
+  /// 5️⃣ Get hostel attendance grid for a student
+  static Future<List<HostelGridModel>> getHostelAttendanceGrid(int sid) async {
+    final res = await getRequest(ApiCollection.hostelAttendanceGrid(sid));
+
+    debugPrint("HOSTEL ATTENDANCE GRID RESPONSE: $res");
+
+    if (res["attendance"] != null && res["attendance"] is List) {
+      return (res["attendance"] as List)
+          .map((e) => HostelGridModel.fromJson(e))
+          .toList();
     }
 
     return [];
@@ -579,7 +672,25 @@ class ApiService {
       return List<Map<String, dynamic>>.from(res["indexdata"]);
     }
 
-    throw Exception("Failed to load rooms for floor $floorId");
+    return [];
+  }
+
+  // ================= GET FLOOR INCHARGES =================
+  static Future<List<Map<String, dynamic>>> getFloorIncharges(
+    int buildingId,
+  ) async {
+    final res = await getRequest(ApiCollection.getFloorIncharges(buildingId));
+
+    debugPrint("GET FLOOR INCHARGES RESPONSE: $res");
+
+    if ((res["success"] == true ||
+            res["success"] == "true" ||
+            res["success"] == 1) &&
+        res["indexdata"] != null) {
+      return List<Map<String, dynamic>>.from(res["indexdata"]);
+    }
+
+    return [];
   }
 
   // ================= ASSIGN INCHARGES =================
@@ -630,29 +741,6 @@ class ApiService {
     if (!isSuccess) {
       throw Exception(decoded["message"] ?? "Failed to assign incharge");
     }
-  }
-
-  // ================= GET FLOOR INCHARGES =================
-  static Future<List<Map<String, dynamic>>> getFloorIncharges(
-    int buildingId,
-  ) async {
-    final res = await getRequest(ApiCollection.getFloorIncharges(buildingId));
-
-    if (res is List) {
-      return List<Map<String, dynamic>>.from(res);
-    }
-
-    if ((res["success"] == true ||
-            res["success"] == "true" ||
-            res["success"] == 1) &&
-        res["indexdata"] != null) {
-      return List<Map<String, dynamic>>.from(res["indexdata"]);
-    }
-
-    // Sometimes the API returns a direct list (as seen in screenshot)
-    if (res is Map && res.isEmpty) return [];
-
-    return [];
   }
 
   // ================= GET FLOORS BY INCHARGE =================

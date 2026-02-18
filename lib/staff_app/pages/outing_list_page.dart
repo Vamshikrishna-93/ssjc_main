@@ -54,7 +54,7 @@ class _OutingListPageState extends State<OutingListPage> {
           const DropdownMenuItem(value: "All", child: Text("All")),
           ...branchController.branches.map(
             (b) => DropdownMenuItem(
-              value: b.branchName,
+              value: b.id.toString(),
               child: Text(b.branchName),
             ),
           ),

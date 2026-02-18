@@ -9,6 +9,8 @@ class StudentModel {
   final String branchName;
   final String groupName;
   final String batch;
+  final String courseName;
+  final bool isFlagged;
 
   StudentModel({
     required this.admNo,
@@ -21,20 +23,28 @@ class StudentModel {
     required this.branchName,
     required this.groupName,
     required this.batch,
+    required this.courseName,
+    required this.isFlagged,
   });
 
   factory StudentModel.fromJson(Map<String, dynamic> json) {
     return StudentModel(
-      admNo: json['admno'] ?? '',
-      sid: json['sid'] ?? 0,
-      sFirstName: json['sfname'] ?? '',
-      sLastName: json['slname'] ?? '',
-      fatherName: json['fname'] ?? '',
-      mobile: json['pmobile'] ?? '',
-      status: json['status'] ?? '',
-      branchName: json['branch_name'] ?? '',
-      groupName: json['groupname'] ?? '',
-      batch: json['batch'] ?? '',
+      admNo: json['admno']?.toString() ?? '',
+      sid: json['sid'] is int
+          ? json['sid']
+          : int.tryParse(json['sid']?.toString() ?? '0') ?? 0,
+      sFirstName: json['sfname']?.toString() ?? '',
+      sLastName: json['slname']?.toString() ?? '',
+      fatherName: json['fname']?.toString() ?? '',
+      mobile: json['pmobile']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      branchName: json['branch_name']?.toString() ?? '',
+      groupName: json['groupname']?.toString() ?? '',
+      batch: json['batch']?.toString() ?? '',
+      courseName: json['coursename']?.toString() ?? '',
+      isFlagged: json['isflagged'] == null || json['isflagged'] == 'null'
+          ? false
+          : true,
     );
   }
 }

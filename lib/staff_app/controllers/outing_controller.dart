@@ -33,18 +33,34 @@ class OutingController extends GetxController {
   }
 
   // ================= FETCH OUTINGS =================
-  Future<void> fetchOutings() async {
+  Future<void> fetchOutings({
+    String? branch,
+    String? reportType,
+    String? daybookFilter,
+    String? firstDate,
+    String? nextDate,
+  }) async {
     try {
       isLoading.value = true;
 
-      final Map<String, dynamic> res = await ApiService.getOutingListRaw();
+      final Map<String, dynamic> res = await ApiService.getOutingListRaw(
+        branch: branch ?? selectedBranch.value,
+        reportType: reportType ?? selectedStatus.value,
+        daybookFilter: daybookFilter ?? "All",
+        firstDate:
+            firstDate ??
+            (fromDate != null ? fromDate!.toString().substring(0, 10) : ""),
+        nextDate:
+            nextDate ??
+            (toDate != null ? toDate!.toString().substring(0, 10) : ""),
+      );
 
       // ===== LIST DATA =====
       final List listData = res['indexdata'] ?? [];
       final list = listData.map((e) => OutingModel.fromJson(e)).toList();
 
       outingList.assignAll(list);
-      filteredList.assignAll(list);
+      applyFilters(); // Apply search if any
 
       // ===== SUMMARY DATA =====
       final info = res['outing_info'];
@@ -69,36 +85,11 @@ class OutingController extends GetxController {
     }
   }
 
-  // ================= APPLY ALL FILTERS =================
+  // ================= APPLY ALL FILTERS (CLIENT SIDE) =================
   void applyFilters() {
     List<OutingModel> temp = outingList.toList();
 
-    // 🔹 BRANCH
-    if (selectedBranch.value != "All") {
-      temp = temp.where((o) => o.branch == selectedBranch.value).toList();
-    }
-
-    // 🔹 STATUS
-    if (selectedStatus.value != "All") {
-      temp = temp.where((o) => o.status == selectedStatus.value).toList();
-    }
-
-    // 🔹 TODAY
-    if (isTodayFilter.value) {
-      final today = DateTime.now().toIso8601String().substring(0, 10);
-      temp = temp.where((o) => o.outDate == today).toList();
-    }
-
-    // 🔹 CUSTOM DATE
-    if (fromDate != null && toDate != null) {
-      temp = temp.where((o) {
-        final date = DateTime.tryParse(o.outDate);
-        if (date == null) return false;
-        return !date.isBefore(fromDate!) && !date.isAfter(toDate!);
-      }).toList();
-    }
-
-    // 🔹 SEARCH
+    // 🔹 SEARCH (Previously we did branch/status/date filter here, but now it's server-side)
     if (searchQuery.value.isNotEmpty) {
       final q = searchQuery.value.toLowerCase();
       temp = temp
@@ -123,30 +114,32 @@ class OutingController extends GetxController {
     isTodayFilter.value = true;
     fromDate = null;
     toDate = null;
-    applyFilters();
+    fetchOutings(daybookFilter: "Today");
   }
 
   void filterByBranch(String branch) {
     selectedBranch.value = branch;
-    applyFilters();
+    fetchOutings(branch: branch);
   }
 
   void filterByStatus(String status) {
     selectedStatus.value = status;
-    applyFilters();
+    fetchOutings(reportType: status);
   }
 
   void filterByCustomDate(DateTime from, DateTime to) {
     fromDate = from;
     toDate = to;
     isTodayFilter.value = false;
-    applyFilters();
+    fetchOutings(
+      daybookFilter: "Custom",
+      firstDate: from.toString().substring(0, 10),
+      nextDate: to.toString().substring(0, 10),
+    );
   }
 
   // ================= DATE DROPDOWN FILTER =================
   void filterByDate(String type) {
-    final now = DateTime.now();
-
     isTodayFilter.value = false;
     fromDate = null;
     toDate = null;
@@ -157,24 +150,19 @@ class OutingController extends GetxController {
         return;
 
       case "Yesterday":
-        fromDate = DateTime(now.year, now.month, now.day - 1);
-        toDate = fromDate;
+        fetchOutings(daybookFilter: "Yesterday");
         break;
 
       case "Last7Days":
-        fromDate = now.subtract(const Duration(days: 6));
-        toDate = now;
+        fetchOutings(daybookFilter: "Last7Days");
         break;
 
       case "ThisMonth":
-        fromDate = DateTime(now.year, now.month, 1);
-        toDate = now;
+        fetchOutings(daybookFilter: "ThisMonth");
         break;
 
       case "LastMonth":
-        final lastMonth = DateTime(now.year, now.month - 1, 1);
-        fromDate = lastMonth;
-        toDate = DateTime(now.year, now.month, 0);
+        fetchOutings(daybookFilter: "LastMonth");
         break;
 
       case "All":
@@ -185,8 +173,6 @@ class OutingController extends GetxController {
         // UI will open date picker
         return;
     }
-
-    applyFilters();
   }
 
   // ================= RESET =================
@@ -197,7 +183,13 @@ class OutingController extends GetxController {
     searchQuery.value = "";
     fromDate = null;
     toDate = null;
-    filteredList.assignAll(outingList);
+    fetchOutings(
+      branch: "All",
+      reportType: "All",
+      daybookFilter: "All",
+      firstDate: "",
+      nextDate: "",
+    );
   }
 
   // ================= COUNTS =================

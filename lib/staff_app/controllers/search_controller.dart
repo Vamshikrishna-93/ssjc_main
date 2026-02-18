@@ -22,11 +22,14 @@ class SearchController extends GetxController {
       searchResults.clear();
 
       final results = await ApiService.searchStudentByAdmNo(admNo.trim());
+      print("🔍 SEARCH RESULTS RAW: $results");
 
       if (results.isNotEmpty) {
-        searchResults.value = results
-            .map((json) => StudentModel.fromJson(json))
-            .toList();
+        searchResults.value = results.map((json) {
+          print("🔍 MAPPING STUDENT: $json");
+          return StudentModel.fromJson(json);
+        }).toList();
+        print("🔍 SEARCH RESULTS MAPPED: ${searchResults.length} students");
       } else {
         errorMessage.value = 'No student found with admission number: $admNo';
       }

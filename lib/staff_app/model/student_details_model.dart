@@ -60,9 +60,9 @@ class StudentDetailsModel {
       status: studentModel.status ?? '',
       branchName: studentModel.branchName ?? '',
       groupName: studentModel.groupName ?? '',
-      courseName: studentModel.batch ?? '', // fallback
+      courseName: studentModel.courseName ?? studentModel.batch ?? '',
       batch: studentModel.batch ?? '',
-      isFlagged: false,
+      isFlagged: studentModel.isFlagged ?? false,
     );
   }
 }

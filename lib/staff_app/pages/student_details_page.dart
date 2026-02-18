@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../model/student_model.dart';
 import '../model/student_details_model.dart';
 import '../api/api_service.dart';
+import '../controllers/hostel_controller.dart';
 
 class StudentDetailsPage extends StatefulWidget {
   final StudentModel? student;
@@ -18,6 +19,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
   bool isLoading = true;
   StudentDetailsModel? studentDetails;
   String? errorMessage;
+  final HostelController hostelCtrl = Get.put(HostelController());
 
   @override
   void initState() {
@@ -79,49 +81,170 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
           end: Alignment.bottomRight,
         ),
       ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
+      child: DefaultTabController(
+        length: 2,
+        child: Scaffold(
           backgroundColor: Colors.transparent,
-          elevation: 0,
-          title: const Text('Student Details'),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Get.back(),
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: const Text('Student Details'),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Get.back(),
+            ),
+            bottom: TabBar(
+              onTap: (index) {
+                if (index == 1 && studentDetails != null) {
+                  hostelCtrl.loadHostelGrid(studentDetails!.sid);
+                }
+              },
+              tabs: const [
+                Tab(text: "Profile"),
+                Tab(text: "Hostel Attendance"),
+              ],
+            ),
           ),
-        ),
-        body: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : errorMessage != null && studentDetails == null
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 60,
-                        color: Colors.red,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        errorMessage!,
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: _loadStudentDetails,
-                        child: const Text('Retry'),
-                      ),
-                    ],
+          body: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : errorMessage != null && studentDetails == null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 60,
+                          color: Colors.red,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          errorMessage!,
+                          style: const TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: _loadStudentDetails,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
                   ),
+                )
+              : TabBarView(
+                  children: [
+                    _buildStudentDetails(context, isDark),
+                    _buildHostelAttendanceGrid(context, isDark),
+                  ],
                 ),
-              )
-            : _buildStudentDetails(context, isDark),
+        ),
       ),
     );
+  }
+
+  Widget _buildHostelAttendanceGrid(BuildContext context, bool isDark) {
+    return Obx(() {
+      if (hostelCtrl.isLoading.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      if (hostelCtrl.hostelGrid.isEmpty) {
+        return const Center(
+          child: Text(
+            "No attendance grid found",
+            style: TextStyle(color: Colors.white70),
+          ),
+        );
+      }
+
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: hostelCtrl.hostelGrid.length,
+        itemBuilder: (context, index) {
+          final monthData = hostelCtrl.hostelGrid[index];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 16),
+            color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    monthData.monthName ?? "Unknown Month",
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDaysGrid(monthData.dayAttendance, isDark),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    });
+  }
+
+  Widget _buildDaysGrid(Map<String, String?> attendance, bool isDark) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: List.generate(31, (index) {
+        final dayNum = (index + 1).toString().padLeft(2, '0');
+        final status = attendance["Day_$dayNum"];
+
+        return Container(
+          width: 35,
+          height: 35,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _getDayColor(status, isDark),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
+          ),
+          child: Text(
+            (index + 1).toString(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: status != null
+                  ? Colors.white
+                  : (isDark ? Colors.white38 : Colors.black38),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Color _getDayColor(String? status, bool isDark) {
+    if (status == null || status.isEmpty || status == "null") {
+      return isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100;
+    }
+    switch (status.toUpperCase()) {
+      case 'P':
+        return Colors.green.shade600;
+      case 'A':
+        return Colors.red.shade600;
+      case 'O':
+        return Colors.orange.shade600;
+      case 'M':
+        return Colors.redAccent.shade400;
+      case 'H':
+        return Colors.purple.shade600;
+      default:
+        return Colors.blueGrey;
+    }
   }
 
   Widget _buildStudentDetails(BuildContext context, bool isDark) {

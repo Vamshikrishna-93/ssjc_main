@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
 import '../widgets/search_field.dart';
+import '../controllers/hostel_controller.dart';
+import 'hostel_attendance_mark_page.dart';
 
 class HostelAttendanceResultPage extends StatefulWidget {
   const HostelAttendanceResultPage({super.key});
@@ -11,6 +15,7 @@ class HostelAttendanceResultPage extends StatefulWidget {
 
 class _HostelAttendanceResultPageState
     extends State<HostelAttendanceResultPage> {
+  final HostelController hostelCtrl = Get.find<HostelController>();
   String _query = "";
 
   // COLORS
@@ -20,26 +25,12 @@ class _HostelAttendanceResultPageState
   static const Color midBlue = Color(0xFF0f3460);
   static const Color purpleDark = Color(0xFF533483);
 
-  final List<List<String>> _rows = [
-    ['1', 'C-201', '2ND FLOOR C & D BLOCKS', 'GOSU ABHISHEK SAGAR', '7', '0'],
-    ['2', 'C-202', '2ND FLOOR C & D BLOCKS', 'GOSU ABHISHEK SAGAR', '7', '0'],
-    ['3', 'C-203', '2ND FLOOR C & D BLOCKS', 'GOSU ABHISHEK SAGAR', '8', '0'],
-    ['4', 'C-204', '2ND FLOOR C & D BLOCKS', 'GOSU ABHISHEK SAGAR', '9', '0'],
-  ];
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final filtered = _rows.where((row) {
-      return row[1].toLowerCase().contains(_query.toLowerCase()) ||
-          row[2].toLowerCase().contains(_query.toLowerCase()) ||
-          row[3].toLowerCase().contains(_query.toLowerCase()) ||
-          row[0].contains(_query);
-    }).toList();
-
     return Scaffold(
-      backgroundColor: Color(0xFF16213e),
+      backgroundColor: const Color(0xFF16213e),
 
       // ✅ PERFECT APP BAR
       appBar: AppBar(
@@ -108,11 +99,39 @@ class _HostelAttendanceResultPageState
 
             // 📋 LIST
             Expanded(
-              child: ListView.builder(
-                itemCount: filtered.length,
-                itemBuilder: (context, index) =>
-                    _attendanceCard(filtered[index], isDark),
-              ),
+              child: Obx(() {
+                if (hostelCtrl.isLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final filtered = hostelCtrl.roomsSummary.where((row) {
+                  final q = _query.toLowerCase();
+                  return (row['room']?.toString() ?? '').toLowerCase().contains(
+                        q,
+                      ) ||
+                      (row['floor']?.toString() ?? '').toLowerCase().contains(
+                        q,
+                      ) ||
+                      (row['incharge']?.toString() ?? '')
+                          .toLowerCase()
+                          .contains(q);
+                }).toList();
+
+                if (filtered.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "No attendance records found",
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) =>
+                      _attendanceCard(filtered[index], index + 1, isDark),
+                );
+              }),
             ),
           ],
         ),
@@ -121,100 +140,144 @@ class _HostelAttendanceResultPageState
   }
 
   // ================= CARD =================
-  Widget _attendanceCard(List<String> row, bool isDark) {
-    final total = int.parse(row[4]);
-    final present = int.parse(row[5]);
-    final absent = total - present;
+  Widget _attendanceCard(Map<String, dynamic> row, int sNo, bool isDark) {
+    // Parse all metrics safely
+    final total = int.tryParse(row['total']?.toString() ?? '0') ?? 0;
+    final present = int.tryParse(row['present']?.toString() ?? '0') ?? 0;
+    final outing = int.tryParse(row['outing']?.toString() ?? '0') ?? 0;
+    final homePass = int.tryParse(row['home_pass']?.toString() ?? '0') ?? 0;
+    final selfOuting = int.tryParse(row['self_outing']?.toString() ?? '0') ?? 0;
+    final selfHome = int.tryParse(row['self_home']?.toString() ?? '0') ?? 0;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: isDark ? null : Theme.of(context).cardColor,
-        gradient: isDark
-            ? LinearGradient(
-                colors: [
-                  midBlue.withOpacity(0.55),
-                  purpleDark.withOpacity(0.55),
-                ],
-              )
-            : null,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isDark ? neon.withOpacity(0.35) : Colors.grey.shade300,
-          width: 1.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? neon.withOpacity(0.25)
-                : Colors.black.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    // Calculate absent or use missing if available?
+    // Usually: Absent = Total - (Present + Outing + HomePass + ...)
+    // But for now let's just use Total - Present as 'Not Present' or
+    // maybe verify if 'missing' field exists? The API screenshot doesn't show it clearly.
+    // Let's stick to Total - Present for "Absent/Missing" generally,
+    // OR just display "Missing" if we want to be specific about who is not accounted for.
+    // However, if someone is on Outing, they are not "Present" in room, but valid.
+    // Let's display "Missing" as (Total - Present - Outing - HomePass - SelfOuting - SelfHome).
+
+    final accountedFor = present + outing + homePass + selfOuting + selfHome;
+    final missing = (total - accountedFor).clamp(0, total);
+
+    return InkWell(
+      onTap: () {
+        Get.to(
+          () => const HostelAttendanceMarkPage(),
+          arguments: {
+            'room_id': row['room'],
+            'room_name': row['room']?.toString() ?? 'N/A',
+            'floor_name': row['floor'],
+          },
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isDark ? null : Theme.of(context).cardColor,
+          gradient: isDark
+              ? const LinearGradient(colors: [midBlue, purpleDark])
+              : null,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isDark ? neon.withOpacity(0.35) : Colors.grey.shade300,
+            width: 1.2,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // TOP ROW
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "S.No: ${row[0]}",
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: neon,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  row[1],
-                  style: const TextStyle(
-                    color: Colors.black,
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? neon.withOpacity(0.25)
+                  : Colors.black.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // TOP ROW
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "S.No: $sNo",
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            ],
-          ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: neon,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    row['room']?.toString() ?? 'N/A',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
 
-          const SizedBox(height: 10),
-          Text(
-            "Floor: ${row[2]}",
-            style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            "Incharge: ${row[3]}",
-            style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
-          ),
+            const SizedBox(height: 10),
+            Text(
+              "Floor: ${row['floor'] ?? 'N/A'}",
+              style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              "Incharge: ${row['incharge'] ?? 'N/A'}",
+              style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+            ),
 
-          const SizedBox(height: 14),
+            const SizedBox(height: 14),
 
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _badge(Icons.people, "Total: $total", neon),
-              _badge(
-                Icons.check_circle,
-                "Present: $present",
-                Colors.greenAccent,
-              ),
-              _badge(Icons.cancel, "Absent: $absent", Colors.redAccent),
-            ],
-          ),
-        ],
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _badge(Icons.people, "Total: $total", Colors.blueAccent),
+                _badge(
+                  Icons.check_circle,
+                  "Present: $present",
+                  Colors.greenAccent,
+                ),
+                if (outing > 0)
+                  _badge(
+                    Icons.directions_walk,
+                    "Outing: $outing",
+                    Colors.orangeAccent,
+                  ),
+                if (homePass > 0)
+                  _badge(
+                    Icons.home,
+                    "Home Pass: $homePass",
+                    Colors.purpleAccent,
+                  ),
+                if (selfOuting > 0)
+                  _badge(
+                    Icons.directions_run,
+                    "Self Outing: $selfOuting",
+                    Colors.tealAccent,
+                  ),
+                if (selfHome > 0)
+                  _badge(Icons.cottage, "Self Home: $selfHome", Colors.brown),
+                // Show Missing/Absent in Red
+                _badge(Icons.cancel, "Missing: $missing", Colors.redAccent),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

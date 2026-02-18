@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/hostel_controller.dart';
 import '../controllers/branch_controller.dart';
+import 'hostel_attendance_grid_page.dart';
 
 class HostelAttendanceMarkPage extends StatefulWidget {
   const HostelAttendanceMarkPage({super.key});
@@ -12,8 +13,15 @@ class HostelAttendanceMarkPage extends StatefulWidget {
 }
 
 class _HostelAttendanceMarkPageState extends State<HostelAttendanceMarkPage> {
-  final HostelController hostelCtrl = Get.put(HostelController());
+  final HostelController hostelCtrl = Get.find<HostelController>();
   final Map<String, dynamic> args = Get.arguments;
+
+  // COLORS
+  static const Color neon = Color(0xFF00FFF5);
+  static const Color darkNavy = Color(0xFF1a1a2e);
+  static const Color darkBlue = Color(0xFF16213e);
+  static const Color midBlue = Color(0xFF0f3460);
+  static const Color purpleDark = Color(0xFF533483);
 
   // State for attendance marking
   final Map<int, String> _statuses = {}; // sid -> status (P/A)
@@ -21,7 +29,9 @@ class _HostelAttendanceMarkPageState extends State<HostelAttendanceMarkPage> {
   @override
   void initState() {
     super.initState();
-    _loadStudents();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadStudents();
+    });
   }
 
   Future<void> _loadStudents() async {
@@ -35,7 +45,7 @@ class _HostelAttendanceMarkPageState extends State<HostelAttendanceMarkPage> {
 
     // Initialize statuses to Present by default
     for (final s in hostelCtrl.roomStudents) {
-      _statuses[s['sid']] = 'P';
+      _statuses[s.sid] = 'P';
     }
     setState(() {});
   }
@@ -48,24 +58,36 @@ class _HostelAttendanceMarkPageState extends State<HostelAttendanceMarkPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF16213e),
       appBar: AppBar(
-        title: Text("Mark Attendance - $roomName"),
-        backgroundColor: Colors.transparent,
+        title: Text(
+          "Mark Attendance - $roomName",
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: isDark
+            ? Colors.black.withOpacity(0.35)
+            : Colors.white.withOpacity(0.95),
         elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            color: isDark ? Colors.white : Colors.black,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Container(
-        decoration: isDark
-            ? const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFF1a1a2e),
-                    Color(0xFF16213e),
-                    Color(0xFF0f3460),
-                  ],
+        decoration: BoxDecoration(
+          gradient: isDark
+              ? const LinearGradient(
+                  colors: [darkNavy, darkBlue, midBlue, purpleDark],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                ),
-              )
-            : null,
+                )
+              : null,
+          color: isDark ? null : Theme.of(context).scaffoldBackgroundColor,
+        ),
         child: Column(
           children: [
             Expanded(
@@ -78,33 +100,92 @@ class _HostelAttendanceMarkPageState extends State<HostelAttendanceMarkPage> {
                   return const Center(
                     child: Text(
                       "No students found in this room",
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.white70),
                     ),
                   );
                 }
 
                 return ListView.builder(
+                  padding: const EdgeInsets.all(16),
                   itemCount: hostelCtrl.roomStudents.length,
                   itemBuilder: (context, index) {
                     final student = hostelCtrl.roomStudents[index];
-                    final sid = student['sid'];
+                    final sid = student.sid;
                     final currentStatus = _statuses[sid] ?? 'P';
 
-                    return ListTile(
-                      title: Text(
-                        student['student_name'] ?? 'Unknown',
-                        style: const TextStyle(color: Colors.white),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isDark ? null : Theme.of(context).cardColor,
+                        gradient: isDark
+                            ? const LinearGradient(
+                                colors: [midBlue, purpleDark],
+                              )
+                            : null,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isDark
+                              ? neon.withOpacity(0.35)
+                              : Colors.grey.shade300,
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark
+                                ? neon.withOpacity(0.15)
+                                : Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      subtitle: Text(
-                        "Adm No: ${student['admno']}",
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
+                      child: Row(
                         children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  student.studentName,
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "Adm No: ${student.admno}",
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.black54,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // View History Button
+                          IconButton(
+                            icon: const Icon(
+                              Icons.history,
+                              color: Colors.blueAccent,
+                            ),
+                            onPressed: () {
+                              Get.to(
+                                () => HostelAttendanceGridPage(
+                                  sid: student.sid,
+                                  studentName: student.studentName,
+                                  admNo: student.admno,
+                                ),
+                              );
+                            },
+                          ),
                           _statusButton(
                             'P',
-                            Colors.green,
+                            Colors.greenAccent,
                             currentStatus == 'P',
                             () {
                               setState(() => _statuses[sid] = 'P');
@@ -113,7 +194,7 @@ class _HostelAttendanceMarkPageState extends State<HostelAttendanceMarkPage> {
                           const SizedBox(width: 8),
                           _statusButton(
                             'A',
-                            Colors.red,
+                            Colors.redAccent,
                             currentStatus == 'A',
                             () {
                               setState(() => _statuses[sid] = 'A');
@@ -128,12 +209,49 @@ class _HostelAttendanceMarkPageState extends State<HostelAttendanceMarkPage> {
             ),
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
+              child: Container(
                 width: double.infinity,
-                height: 50,
+                height: 52,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: isDark
+                      ? const LinearGradient(colors: [neon, Colors.cyan])
+                      : const LinearGradient(
+                          colors: [Color(0xFF0f3460), Color(0xFF533483)],
+                        ),
+                  boxShadow: isDark
+                      ? [
+                          BoxShadow(
+                            color: neon.withOpacity(0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                ),
                 child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
                   onPressed: _submit,
-                  child: const Text("Submit Attendance"),
+                  child: const Text(
+                    "Submit Attendance",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -176,17 +294,59 @@ class _HostelAttendanceMarkPageState extends State<HostelAttendanceMarkPage> {
     final sids = _statuses.keys.toList();
     final statuses = sids.map((id) => _statuses[id]!).toList();
 
-    // Again, shift and branch need to be handled correctly
-    // Getting branchId from selected branch if available
-    final branchId =
-        Get.put(BranchController()).selectedBranch.value?.id.toString() ?? '1';
+    // 1. Get Branch ID
+    final BranchController branchCtrl = Get.put(BranchController());
+    if (branchCtrl.branches.isEmpty) {
+      await branchCtrl.loadBranches();
+    }
+    // Try to get branch from active filter or default
+    String branchId = '1';
+    if (hostelCtrl.activeBranch.value.isNotEmpty) {
+      final b = branchCtrl.branches.firstWhereOrNull(
+        (element) => element.branchName == hostelCtrl.activeBranch.value,
+      );
+      if (b != null) branchId = b.id.toString();
+    } else {
+      // Fallback to selected branch in controller
+      branchId = branchCtrl.selectedBranch.value?.id.toString() ?? '1';
+    }
+
+    // 2. Get Hostel ID
+    String hostelId = '1';
+    if (hostelCtrl.hostels.isEmpty && branchId != '1') {
+      await hostelCtrl.loadHostelsByBranch(int.parse(branchId));
+    }
+
+    if (hostelCtrl.activeHostel.value.isNotEmpty) {
+      final h = hostelCtrl.hostels.firstWhereOrNull(
+        (element) => element.buildingName == hostelCtrl.activeHostel.value,
+      );
+      if (h != null) hostelId = h.id.toString();
+    }
+
+    // 3. Floor ID
+    // If activeFloor is set (Name), try to find ID?
+    // Or just pass the Name if that's what we have.
+    // Screenshot 3 has `Mark Attendance - 101`. `args` has `room_name`, `floor_name`.
+    // Let's assume we pass Name if we can't find ID, or use `1` as generic fallback if critical?
+    // Actually, `ApiCollection` says `floor` param.
+    String floorId = args['floor_name'] ?? hostelCtrl.activeFloor.value;
+    // Attempt lookup if `members` are loaded
+    if (hostelCtrl.members.isNotEmpty) {
+      final m = hostelCtrl.members.firstWhereOrNull(
+        (element) => element['floor']?.toString() == floorId,
+      );
+      if (m != null && m.containsKey('floor_id')) {
+        floorId = m['floor_id'].toString();
+      }
+    }
 
     final success = await hostelCtrl.submitAttendance(
       branchId: branchId,
-      hostel: args['room_id']
-          .toString(), // The API might expect hostel name or ID?
-      floor: args['floor_name'],
-      room: args['room_name'],
+      hostel: hostelId,
+      floor: floorId,
+      room: args['room_id']
+          .toString(), // Use Room ID directly as it is available
       shift: '1',
       sidList: sids,
       statusList: statuses,

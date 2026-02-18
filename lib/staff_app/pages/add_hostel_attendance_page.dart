@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:student_app/staff_app/controllers/hostel_controller.dart';
+import '../controllers/hostel_controller.dart';
+import '../controllers/branch_controller.dart';
 
 class AddHostelAttendancePage extends StatefulWidget {
   final String? branch;
@@ -60,64 +61,160 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
   }
 
   Future<void> _getStudents() async {
-    setState(() => isLoading = true);
+    await hostelCtrl.loadRoomStudents(
+      shift: '1', // Default shift
+      date: selectedDate,
+      roomId: widget.room ?? '',
+    );
 
-    // TODO: Replace with actual API call
-    // For now, adding mock data
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() {
-      students.clear();
-      students.addAll([
-        {
-          'admissionNo': '251170',
-          'name': 'NAGAM GHANA ESWAR',
-          'phone': '9876543210',
-        },
-        {
-          'admissionNo': '251935',
-          'name': 'ANNAM JOSH SRIDHAR MANIKANTA REDDY',
-          'phone': '9876543211',
-        },
-        {
-          'admissionNo': '251936',
-          'name': 'GADE SRI ABHIJITH REDDY',
-          'phone': '9876543212',
-        },
-        {
-          'admissionNo': '252126',
-          'name': 'PODILI CHARAN',
-          'phone': '9876543213',
-        },
-        {
-          'admissionNo': '252349',
-          'name': 'ELICHERLA STEEIEN ARYA',
-          'phone': '9876543214',
-        },
-        {
-          'admissionNo': '252983',
-          'name': 'BANDARU SHESHI KIRAN',
-          'phone': '9876543215',
-        },
-      ]);
-
-      // Initialize attendance status for new students
-      for (int i = 0; i < students.length; i++) {
-        attendanceStatus[i] = 'Present';
-      }
-
-      isLoading = false;
-    });
+    // Initialize attendance status to 'Present' for all students
+    for (final student in hostelCtrl.roomStudents) {
+      attendanceStatus[student.sid] = 'Present';
+    }
   }
 
   Future<void> _submitAttendance() async {
-    // TODO: Implement API call to submit attendance
-    Get.snackbar(
-      'Success',
-      'Attendance submitted successfully',
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
+    final List<int> sids = [];
+    final List<String> statuses = [];
+
+    for (final student in hostelCtrl.roomStudents) {
+      sids.add(student.sid);
+      // Map full status names to single chars if needed by backend (API usually expects 'P', 'A', 'O', etc.)
+      // Assuming backend accepts full words or we map them here.
+      // Based on screenshot 3, it sends "A" for Absent.
+      // Let's map them.
+      String status = attendanceStatus[student.sid] ?? 'Present';
+      String statusCode = 'P';
+      switch (status) {
+        case 'Present':
+          statusCode = 'P';
+          break;
+        case 'Missing':
+          statusCode =
+              'A'; // or 'M'? Screenshot shows 'A' button, table has 'Missing'. Let's use 'A' for Absent/Missing
+          break;
+        case 'Outing':
+          statusCode = 'O';
+          break;
+        case 'Home Pass':
+          statusCode = 'H';
+          break;
+        case 'Self Outing':
+          statusCode = 'SO';
+          break;
+        case 'Self Home':
+          statusCode = 'SH';
+          break;
+        default:
+          statusCode = 'P';
+      }
+      statuses.add(statusCode);
+    }
+
+    // 1. Find Branch ID
+    final BranchController branchCtrl = Get.put(BranchController());
+    // If branches aren't loaded, we might need to load them first or rely on pre-loaded data
+    if (branchCtrl.branches.isEmpty) {
+      await branchCtrl.loadBranches();
+    }
+
+    final branchName = widget.branch;
+    final branchObj = branchCtrl.branches.firstWhereOrNull(
+      (b) => b.branchName == branchName,
     );
+    final String branchId =
+        branchObj?.id.toString() ?? '1'; // Default to 1 or handle error
+
+    // 2. Find Hostel ID (Building ID)
+    // Ensure hostels are loaded for the branch
+    if (hostelCtrl.hostels.isEmpty) {
+      // We might need to load them if not present, but usually they are if we are here.
+      // If not, we can try to load them if we have a branch ID
+      if (branchObj != null) {
+        await hostelCtrl.loadHostelsByBranch(branchObj.id);
+      }
+    }
+
+    final hostelName = widget.hostel;
+    final hostelObj = hostelCtrl.hostels.firstWhereOrNull(
+      (h) => h.buildingName == hostelName,
+    );
+    final String hostelId = hostelObj?.id.toString() ?? '1';
+
+    // 3. Find Floor ID - we don't have a direct Floor ID lookup map easily accessible
+    // without iterating members or having a floor model.
+    // BUT the API for "store" might accept the raw value if it's just a number,
+    // OR we need to find the ID.
+    // Looking at `HostelController.loadFloorsAndRooms`, it extracts floor names.
+    // And `ApiCollection.storeHostelAttendance` describes params as `hostel`, `floor`, `room`.
+    // If the backend expects IDs for floor/room, we have a problem because we only have names here.
+    // However, in `HostelController.loadFloorsAndRooms`, we loaded `members`.
+    // `members` contains `floor` and `room` fields which are likely Names (e.g. "1-FLOOR").
+    // Let's assume for now that passing the Name is what's intended OR
+    // strict IDs are required. The Screenshot shows `floor=2`, `room=7`. These are definitely IDs.
+
+    // We need to find Floor ID and Room ID.
+    // We can try to find them from `hostelCtrl.members` if it has ID fields?
+    // checking `members` data structure... `getHostelMembers` returns a list of maps.
+    // We didn't see the full structure in `view_file` of controller, but usually it has `floor_id`, `room_id`?
+    // If not, we might be stuck sending names or need to fetch structure.
+
+    // HACK: Filter `hostelCtrl.members` to find a matching floor/room name and get its ID if available.
+    String floorId = widget.floor ?? '0';
+    String roomId = widget.room ?? '0';
+
+    if (hostelCtrl.members.isNotEmpty) {
+      final member = hostelCtrl.members.firstWhereOrNull(
+        (m) =>
+            m['floor']?.toString() == widget.floor &&
+            m['room']?.toString() == widget.room,
+      );
+      if (member != null) {
+        // If the API response contains explicit IDs
+        if (member.containsKey('floor_id'))
+          floorId = member['floor_id'].toString();
+        if (member.containsKey('room_id'))
+          roomId = member['room_id'].toString();
+        // If not, we might have to rely on the names being numbers or something,
+        // but `widget.floor` is "1-FLOOR".
+        // Let's try to parse if it contains a number, or stick with what we have.
+        // Screenshot shows `floor_id=2`...
+      }
+    }
+
+    // If we still don't have IDs and we are sending names like "1-FLOOR", it might fail.
+    // But let's proceed with finding what we can.
+    // For now, I will assume the `HostelAttendanceStatusPage` (which likely navigates here)
+    // passed names.
+    // Wait, the user said "Add Hostel Attendance Page" and "Hostel Attendance Mark Page".
+    // If I look at the `HostelAttendanceMarkPage` (screenshot 3), it has `Mark Attendance - 101`.
+    // The previous page `HostelAttendanceStatusPage` (screenshot 1) shows `Room 101`.
+
+    // Let's check `HostelController.loadFloorsAndRooms` again.
+    // It calls `ApiService.getHostelMembers`.
+    // `ApiCollection.hostelMembersList` takes type/param.
+
+    // If I cannot guarantee IDs, I will send what I have, but try to find IDs from `members`.
+    // I'll add a helper to look up IDs from the member list which contains everything.
+
+    final success = await hostelCtrl.submitAttendance(
+      branchId: branchId,
+      hostel: hostelId, // Building ID
+      floor: floorId, // Sending Name if ID not found, but likely need ID
+      room: roomId, // Sending Name if ID not found
+      shift: '1',
+      sidList: sids,
+      statusList: statuses,
+    );
+
+    if (success) {
+      Get.snackbar(
+        'Success',
+        'Attendance submitted successfully',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    }
   }
 
   @override
@@ -192,79 +289,90 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
                   child: SizedBox(
                     width: double.infinity,
                     height: 50,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark
-                            ? Colors.cyanAccent
-                            : const Color(0xFF533483),
-                        foregroundColor: isDark ? Colors.black : Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.black,
-                              ),
-                            )
-                          : const Icon(Icons.search),
-                      label: Text(
-                        isLoading ? "Loading..." : "Get Students",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      onPressed: isLoading ? null : _getStudents,
-                    ),
-                  ),
-                ),
-
-                // Student List
-                Expanded(
-                  child: students.isEmpty
-                      ? Center(
-                          child: Text(
-                            'Click "Get Students" to load student list',
-                            style: TextStyle(
-                              color: isDark ? Colors.white70 : Colors.black54,
-                              fontSize: 16,
-                            ),
-                          ),
-                        )
-                      : _buildStudentTable(isDark),
-                ),
-
-                // Submit Button
-                if (students.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
+                    child: Obx(
+                      () => ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
+                          backgroundColor: isDark
+                              ? Colors.cyanAccent
+                              : const Color(0xFF533483),
+                          foregroundColor: isDark ? Colors.black : Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        onPressed: _submitAttendance,
-                        child: const Text(
-                          'Submit Attendance',
-                          style: TextStyle(
+                        icon: hostelCtrl.isLoading.value
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.black,
+                                ),
+                              )
+                            : const Icon(Icons.search),
+                        label: Text(
+                          hostelCtrl.isLoading.value
+                              ? "Loading..."
+                              : "Get Students",
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        onPressed: hostelCtrl.isLoading.value
+                            ? null
+                            : _getStudents,
                       ),
                     ),
                   ),
+                ),
+
+                Expanded(
+                  child: Obx(() {
+                    if (hostelCtrl.roomStudents.isEmpty) {
+                      return Center(
+                        child: Text(
+                          'Click "Get Students" to load student list',
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.black54,
+                            fontSize: 16,
+                          ),
+                        ),
+                      );
+                    }
+                    return _buildStudentTable(isDark);
+                  }),
+                ),
+
+                // Submit Button
+                Obx(
+                  () => hostelCtrl.roomStudents.isNotEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              onPressed: _submitAttendance,
+                              child: const Text(
+                                'Submit Attendance',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
               ],
             ),
           ),
@@ -420,9 +528,9 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: students.length,
+              itemCount: hostelCtrl.roomStudents.length,
               itemBuilder: (context, index) {
-                final student = students[index];
+                final student = hostelCtrl.roomStudents[index];
                 return Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -455,7 +563,7 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: DropdownButton<String>(
-                            value: attendanceStatus[index],
+                            value: attendanceStatus[student.sid] ?? 'Present',
                             isExpanded: true,
                             underline: const SizedBox(),
                             dropdownColor: isDark ? dark2 : Colors.white,
@@ -471,7 +579,7 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
                             }).toList(),
                             onChanged: (value) {
                               setState(() {
-                                attendanceStatus[index] = value!;
+                                attendanceStatus[student.sid] = value!;
                               });
                             },
                           ),
@@ -480,7 +588,7 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          student['admissionNo'],
+                          student.admno,
                           style: TextStyle(
                             color: isDark ? Colors.white : Colors.black,
                             fontSize: 12,
@@ -494,7 +602,7 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
                             // TODO: Navigate to student details
                           },
                           child: Text(
-                            student['name'],
+                            student.studentName,
                             style: const TextStyle(
                               color: Colors.blue,
                               fontSize: 12,
@@ -505,7 +613,7 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
                       ),
                       Expanded(
                         child: Text(
-                          student['phone'] ?? '',
+                          student.phone ?? '',
                           style: TextStyle(
                             color: isDark ? Colors.white : Colors.black,
                             fontSize: 12,

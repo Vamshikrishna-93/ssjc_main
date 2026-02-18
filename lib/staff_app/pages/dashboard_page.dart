@@ -118,31 +118,55 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
 
           const SizedBox(width: 8),
 
-          // YEAR DROPDOWN (RESPONSIVE)
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: selectedYear,
-                  isExpanded: true,
-                  icon: const Icon(Icons.arrow_drop_down),
-                  dropdownColor: Theme.of(context).cardColor,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  items: years
-                      .map(
-                        (y) => DropdownMenuItem(
-                          value: y,
-                          child: Text(y, overflow: TextOverflow.ellipsis),
+          // YEAR POPUP MENU
+          PopupMenuButton<String>(
+            initialValue: selectedYear,
+            onSelected: (v) => setState(() => selectedYear = v),
+            itemBuilder: (context) => years
+                .map(
+                  (y) => PopupMenuItem(
+                    value: y,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          y,
+                          style: TextStyle(
+                            fontWeight: y == selectedYear
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: y == selectedYear
+                                ? Theme.of(context).primaryColor
+                                : null,
+                          ),
                         ),
-                      )
-                      .toList(),
-                  onChanged: (v) => setState(() => selectedYear = v!),
-                ),
+                        if (y == selectedYear)
+                          Icon(
+                            Icons.check,
+                            size: 18,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.calendar_month_outlined,
+                    color: iconColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.arrow_drop_down, color: iconColor, size: 18),
+                ],
               ),
             ),
           ),
@@ -784,6 +808,10 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                 _drawerSubItem(
                   "Verify Attendance",
                   () => Get.toNamed('/verifyAttendance'),
+                ),
+                _drawerSubItem(
+                  "Hostel Attendance",
+                  () => Get.toNamed('/hostelAttendanceFilter'),
                 ),
                 _drawerSubItem("Outings", () => Get.toNamed('/outingList')),
                 _drawerSubItem(

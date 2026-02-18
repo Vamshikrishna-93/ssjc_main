@@ -15,8 +15,9 @@ class AddHostelPage extends StatefulWidget {
 class _AddHostelPageState extends State<AddHostelPage> {
   final _formKey = GlobalKey<FormState>();
 
-  final BranchController branchCtrl = Get.find<BranchController>();
-  final StaffController staffCtrl = Get.find<StaffController>();
+  final BranchController branchCtrl = Get.put(BranchController());
+  final StaffController staffCtrl = Get.put(StaffController());
+  final HostelController hostelCtrl = Get.put(HostelController());
 
   final TextEditingController _buildingCtrl = TextEditingController();
   final TextEditingController _addressCtrl = TextEditingController();
@@ -308,9 +309,7 @@ class _AddHostelPageState extends State<AddHostelPage> {
       );
 
       // Refresh hostel list and go back
-      Get.find<HostelController>().loadHostelsByBranch(
-        _selectedBranchId.value!,
-      );
+      hostelCtrl.loadHostelsByBranch(_selectedBranchId.value!);
       Get.back();
     } catch (e) {
       Get.snackbar(

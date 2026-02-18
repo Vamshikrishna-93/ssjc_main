@@ -19,8 +19,20 @@ class ApiCollection {
   static const String categoryList = "/categorylist";
 
   // ================= OUTING =================
-  static const String outingList =
-      "/outinglist?branch[]=All&report_type=All&daybookfilter=All&firstdate=&nextdate=";
+  static String outingList({
+    String? branch,
+    String? reportType,
+    String? daybookFilter,
+    String? firstDate,
+    String? nextDate,
+  }) {
+    return "/outinglist"
+        "?branch[]=${Uri.encodeQueryComponent(branch ?? "All")}"
+        "&report_type=${Uri.encodeQueryComponent(reportType ?? "All")}"
+        "&daybookfilter=${Uri.encodeQueryComponent(daybookFilter ?? "All")}"
+        "&firstdate=${Uri.encodeQueryComponent(firstDate ?? "")}"
+        "&nextdate=${Uri.encodeQueryComponent(nextDate ?? "")}";
+  }
 
   static const String pendingOutingList = "/getpendingoutinglist";
 
@@ -83,7 +95,7 @@ class ApiCollection {
   /// 2️⃣ Store hostel attendance (GET as per backend)
   static String storeHostelAttendance({
     required String branchId,
-    required String hostel,
+    required String hostel, // building_id
     required String floor,
     required String room,
     required String shift,
@@ -93,7 +105,8 @@ class ApiCollection {
     final sids = sidList.map((e) => "sid[]=$e").join("&");
     final status = statusList.map((e) => "at_status[]=$e").join("&");
 
-    return "/store_hostel_attendance"
+    // NOTE: Backend endpoint has a typo "store_hostel_attendace"
+    return "/store_hostel_attendace"
         "?branch_id=$branchId"
         "&hostel=$hostel"
         "&floor=$floor"
@@ -130,6 +143,8 @@ class ApiCollection {
         "&floor=$floor"
         "&room=$room";
   }
+
+  static const String roomsAttendanceEndpoint = "/rooms-attendance";
 
   /// 5️⃣ Hostel attendance monthly grid
   static String hostelAttendanceGrid(int sid) {
