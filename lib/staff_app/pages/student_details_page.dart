@@ -101,7 +101,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
               },
               tabs: const [
                 Tab(text: "Profile"),
-                Tab(text: "Hostel Attendance"),
+                // Tab(text: "Hostel Attendance"),
               ],
             ),
           ),
@@ -137,7 +137,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
               : TabBarView(
                   children: [
                     _buildStudentDetails(context, isDark),
-                    _buildHostelAttendanceGrid(context, isDark),
+                    // _buildHostelAttendanceGrid(context, isDark),
                   ],
                 ),
         ),
@@ -145,107 +145,107 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
     );
   }
 
-  Widget _buildHostelAttendanceGrid(BuildContext context, bool isDark) {
-    return Obx(() {
-      if (hostelCtrl.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
-      }
+  // Widget _buildHostelAttendanceGrid(BuildContext context, bool isDark) {
+  //   return Obx(() {
+  //     if (hostelCtrl.isLoading.value) {
+  //       return const Center(child: CircularProgressIndicator());
+  //     }
 
-      if (hostelCtrl.hostelGrid.isEmpty) {
-        return const Center(
-          child: Text(
-            "No attendance grid found",
-            style: TextStyle(color: Colors.white70),
-          ),
-        );
-      }
+  //     if (hostelCtrl.hostelGrid.isEmpty) {
+  //       return const Center(
+  //         child: Text(
+  //           "No attendance grid found",
+  //           style: TextStyle(color: Colors.white70),
+  //         ),
+  //       );
+  //     }
 
-      return ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: hostelCtrl.hostelGrid.length,
-        itemBuilder: (context, index) {
-          final monthData = hostelCtrl.hostelGrid[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 16),
-            color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    monthData.monthName ?? "Unknown Month",
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDaysGrid(monthData.dayAttendance, isDark),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    });
-  }
+  //     return ListView.builder(
+  //       padding: const EdgeInsets.all(16),
+  //       itemCount: hostelCtrl.hostelGrid.length,
+  //       itemBuilder: (context, index) {
+  //         final monthData = hostelCtrl.hostelGrid[index];
+  //         return Card(
+  //           margin: const EdgeInsets.only(bottom: 16),
+  //           color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+  //           shape: RoundedRectangleBorder(
+  //             borderRadius: BorderRadius.circular(12),
+  //           ),
+  //           child: Padding(
+  //             padding: const EdgeInsets.all(12),
+  //             child: Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               children: [
+  //                 Text(
+  //                   monthData.monthName ?? "Unknown Month",
+  //                   style: const TextStyle(
+  //                     fontSize: 18,
+  //                     fontWeight: FontWeight.bold,
+  //                     color: Colors.blueAccent,
+  //                   ),
+  //                 ),
+  //                 const SizedBox(height: 12),
+  //                 _buildDaysGrid(monthData.dayAttendance, isDark),
+  //               ],
+  //             ),
+  //           ),
+  //         );
+  //       },
+  //     );
+  //   });
+  // }
 
-  Widget _buildDaysGrid(Map<String, String?> attendance, bool isDark) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: List.generate(31, (index) {
-        final dayNum = (index + 1).toString().padLeft(2, '0');
-        final status = attendance["Day_$dayNum"];
+  // Widget _buildDaysGrid(Map<String, String?> attendance, bool isDark) {
+  //   return Wrap(
+  //     spacing: 8,
+  //     runSpacing: 8,
+  //     children: List.generate(31, (index) {
+  //       final dayNum = (index + 1).toString().padLeft(2, '0');
+  //       final status = attendance["Day_$dayNum"];
 
-        return Container(
-          width: 35,
-          height: 35,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: _getDayColor(status, isDark),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
-          ),
-          child: Text(
-            (index + 1).toString(),
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: status != null
-                  ? Colors.white
-                  : (isDark ? Colors.white38 : Colors.black38),
-            ),
-          ),
-        );
-      }),
-    );
-  }
+  //       return Container(
+  //         width: 35,
+  //         height: 35,
+  //         alignment: Alignment.center,
+  //         decoration: BoxDecoration(
+  //           color: _getDayColor(status, isDark),
+  //           borderRadius: BorderRadius.circular(6),
+  //           border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
+  //         ),
+  //         child: Text(
+  //           (index + 1).toString(),
+  //           style: TextStyle(
+  //             fontSize: 12,
+  //             fontWeight: FontWeight.bold,
+  //             color: status != null
+  //                 ? Colors.white
+  //                 : (isDark ? Colors.white38 : Colors.black38),
+  //           ),
+  //         ),
+  //       );
+  //     }),
+  //   );
+  // }
 
-  Color _getDayColor(String? status, bool isDark) {
-    if (status == null || status.isEmpty || status == "null") {
-      return isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100;
-    }
-    switch (status.toUpperCase()) {
-      case 'P':
-        return Colors.green.shade600;
-      case 'A':
-        return Colors.red.shade600;
-      case 'O':
-        return Colors.orange.shade600;
-      case 'M':
-        return Colors.redAccent.shade400;
-      case 'H':
-        return Colors.purple.shade600;
-      default:
-        return Colors.blueGrey;
-    }
-  }
+  // Color _getDayColor(String? status, bool isDark) {
+  //   if (status == null || status.isEmpty || status == "null") {
+  //     return isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100;
+  //   }
+  //   switch (status.toUpperCase()) {
+  //     case 'P':
+  //       return Colors.green.shade600;
+  //     case 'A':
+  //       return Colors.red.shade600;
+  //     case 'O':
+  //       return Colors.orange.shade600;
+  //     case 'M':
+  //       return Colors.redAccent.shade400;
+  //     case 'H':
+  //       return Colors.purple.shade600;
+  //     default:
+  //       return Colors.blueGrey;
+  //   }
+  // }
 
   Widget _buildStudentDetails(BuildContext context, bool isDark) {
     if (studentDetails == null) return const SizedBox.shrink();
