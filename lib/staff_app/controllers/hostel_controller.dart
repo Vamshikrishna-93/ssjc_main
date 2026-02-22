@@ -103,8 +103,10 @@ class HostelController extends GetxController {
       final Set<String> rSet = {};
 
       for (final m in data) {
-        if (m['floor'] != null) fSet.add(m['floor'].toString());
-        if (m['room'] != null) rSet.add(m['room'].toString());
+        final f = m['floor_name']?.toString() ?? m['floor']?.toString();
+        final r = m['room_name']?.toString() ?? m['room']?.toString();
+        if (f != null) fSet.add(f);
+        if (r != null) rSet.add(r);
       }
 
       floors.assignAll(fSet.toList()..sort());
@@ -114,6 +116,24 @@ class HostelController extends GetxController {
     } finally {
       isLoading(false);
     }
+  }
+
+  String getFloorIdFromName(String floorName) {
+    if (members.isEmpty) return floorName;
+    final m = members.firstWhereOrNull(
+      (e) =>
+          (e['floor_name']?.toString() ?? e['floor']?.toString()) == floorName,
+    );
+    return m?['floor_id']?.toString() ?? m?['floor']?.toString() ?? floorName;
+  }
+
+  /// Helper to get Room ID from Name
+  String getRoomIdFromName(String roomName) {
+    if (members.isEmpty) return roomName;
+    final m = members.firstWhereOrNull(
+      (e) => (e['room_name']?.toString() ?? e['room']?.toString()) == roomName,
+    );
+    return m?['room_id']?.toString() ?? m?['room']?.toString() ?? roomName;
   }
 
   void filterRoomsByFloor(String floorName) {
@@ -140,6 +160,10 @@ class HostelController extends GetxController {
       isLoading(true);
       roomsSummary.clear();
 
+      print(
+        "LOADING ROOM SUMMARY: branch=$branch, date=$date, hostel=$hostel, floor=$floor, room=$room",
+      );
+
       final data = await ApiService.getRoomsAttendanceSummary(
         branch: branch,
         date: date,
@@ -148,8 +172,9 @@ class HostelController extends GetxController {
         room: room,
       );
 
-      // ✅ FALLBACK: If API returns empty, generate summary locally from `members`
+      print("ROOM SUMMARY API DATA: ${data.length} rooms found");
       if (data.isEmpty && members.isNotEmpty) {
+        print("ROOM SUMMARY API RETURNED EMPTY - USING LOCAL FALLBACK");
         // Filter members based on selection
         final filteredMembers = members.where((m) {
           final mFloor = m['floor']?.toString() ?? '';

@@ -11,6 +11,7 @@ class StudentModel {
   final String batch;
   final String courseName;
   final bool isFlagged;
+  final String flagRemarks;
 
   StudentModel({
     required this.admNo,
@@ -25,9 +26,15 @@ class StudentModel {
     required this.batch,
     required this.courseName,
     required this.isFlagged,
+    required this.flagRemarks,
   });
 
   factory StudentModel.fromJson(Map<String, dynamic> json) {
+    final flagVal = json['isflagged'];
+    final bool flagged =
+        flagVal != null && flagVal != 'null' && flagVal != false;
+    final String remarks = flagged ? flagVal.toString() : "";
+
     return StudentModel(
       admNo: json['admno']?.toString() ?? '',
       sid: json['sid'] is int
@@ -42,9 +49,8 @@ class StudentModel {
       groupName: json['groupname']?.toString() ?? '',
       batch: json['batch']?.toString() ?? '',
       courseName: json['coursename']?.toString() ?? '',
-      isFlagged: json['isflagged'] == null || json['isflagged'] == 'null'
-          ? false
-          : true,
+      isFlagged: flagged,
+      flagRemarks: remarks,
     );
   }
 }

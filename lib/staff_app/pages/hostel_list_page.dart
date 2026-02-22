@@ -5,6 +5,7 @@ import '../controllers/branch_controller.dart';
 import '../controllers/staff_controller.dart';
 import '../model/hostel_model.dart';
 import 'add_hostel_page.dart';
+import '../widgets/skeleton.dart';
 
 /// ================= HOSTEL LIST PAGE =================
 class HostelListPage extends StatefulWidget {
@@ -108,7 +109,10 @@ class _HostelListPageState extends State<HostelListPage> {
         /// BODY
         body: Obx(() {
           if (hostelCtrl.isLoading.isTrue || branchCtrl.isLoading.isTrue) {
-            return const Center(child: CircularProgressIndicator());
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: SkeletonList(itemCount: 5),
+            );
           }
 
           if (branchCtrl.branches.isEmpty) {

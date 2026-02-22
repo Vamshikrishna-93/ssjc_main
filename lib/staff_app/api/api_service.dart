@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:get_storage/get_storage.dart';
@@ -7,6 +8,7 @@ import '../model/non_hostel_student_model.dart';
 import '../model/hostel_student_model.dart';
 import '../model/room_attendance_model.dart';
 import '../model/hostel_grid_model.dart';
+import '../utils/get_storage.dart';
 
 class ApiService {
   ApiService._();
@@ -75,8 +77,20 @@ class ApiService {
       );
 
       if (isSuccess && data["access_token"] != null) {
-        _box.write("token", data["access_token"]);
-        _box.write("user_id", data["userid"]);
+        AppStorage.saveToken(data["access_token"]);
+        AppStorage.saveUserId(data["userid"]);
+
+        // 🔥 STORE NEW FIELDS (LOGIN TYPE, ROLE, PERMISSIONS)
+        if (data["login_type"] != null) {
+          AppStorage.saveLoginType(data["login_type"]);
+        }
+        if (data["role"] != null) {
+          AppStorage.saveUserRole(data["role"]);
+        }
+        if (data["permissions"] != null && data["permissions"] is List) {
+          AppStorage.savePermissions(List<String>.from(data["permissions"]));
+        }
+
         return data;
       }
 
@@ -119,6 +133,17 @@ class ApiService {
           .get(url, headers: _authHeaders(token))
           .timeout(const Duration(seconds: 20));
 
+      // 🔍 DEBUG: Log raw response
+      debugPrint("API GET RESPONSE [$endpoint]: ${response.body}");
+
+      if (response.body.trim().isEmpty) {
+        if (response.statusCode == 200)
+          return {"success": false, "message": "Empty response from server"};
+        throw Exception(
+          "Server returned empty body with status ${response.statusCode}",
+        );
+      }
+
       final decoded = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
@@ -131,8 +156,14 @@ class ApiService {
         throw Exception("Unauthorized");
       }
 
+      if (response.body.length > 500) {
+        throw Exception(
+          "API Error ${response.statusCode}: ${response.body.substring(0, 500)}...",
+        );
+      }
       throw Exception("API Error ${response.statusCode}: ${response.body}");
     } catch (e) {
+      debugPrint("API GET ERROR [$endpoint]: $e");
       rethrow;
     }
   }
@@ -159,6 +190,17 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 20));
 
+      // 🔍 DEBUG: Log raw response
+      debugPrint("API POST RESPONSE [$endpoint]: ${response.body}");
+
+      if (response.body.trim().isEmpty) {
+        if (response.statusCode == 200)
+          return {"success": false, "message": "Empty response from server"};
+        throw Exception(
+          "Server returned empty body with status ${response.statusCode}",
+        );
+      }
+
       final decoded = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
@@ -173,6 +215,7 @@ class ApiService {
 
       throw Exception("API Error ${response.statusCode}: ${response.body}");
     } catch (e) {
+      debugPrint("API POST ERROR [$endpoint]: $e");
       rethrow;
     }
   }
@@ -205,6 +248,238 @@ class ApiService {
     }
 
     throw Exception("Student not found");
+  }
+
+  static Future<List<Map<String, dynamic>>> searchOutingsByName(
+    String identifier,
+  ) async {
+    final res = await postRequest(ApiCollection.outingSearch(identifier));
+
+    if ((res["success"] == true || res["success"] == "true")) {
+      final List? data = res["indexdata"] ?? res["outings"];
+      if (data != null) {
+        return List<Map<String, dynamic>>.from(data);
+      }
+    }
+
+    return [];
+  }
+
+  // ================= ADD OUTING REMARKS =================
+  static Future<void> addOutingRemarks({
+    required int outingId,
+    required String remarks,
+  }) async {
+    final res = await postRequest(
+      ApiCollection.addOutingRemarks,
+      body: {"id": outingId, "remarks": remarks},
+    );
+
+    final bool isSuccess =
+        res["success"] == true ||
+        res["success"] == "true" ||
+        res["success"] == 1;
+
+    if (!isSuccess) {
+      throw Exception(res["message"] ?? "Failed to add outing remarks");
+    }
+  }
+
+  // ================= UPLOAD OUTING LETTER =================
+  static Future<String?> uploadOutingLetter(
+    File imageFile, {
+    String? admNo,
+  }) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      final Map<String, dynamic> body = {
+        "image": "data:image/jpeg;base64,$base64Image",
+      };
+      if (admNo != null) {
+        body["adm_no"] = admNo;
+      }
+
+      final res = await postRequest(
+        ApiCollection.updateOutingLetter,
+        body: body,
+      );
+
+      // 🔍 DEBUG: Log raw response for outing letter update
+      debugPrint("UPLOAD LETTER RESPONSE: $res");
+
+      final bool isSuccess =
+          res["success"] == true ||
+          res["success"] == "true" ||
+          res["success"] == "ture" || // Common backend typo
+          res["success"] == 1;
+
+      if (isSuccess) {
+        // Try various common URL fields if "url" is missing
+        final url = res["url"] ?? res["image_url"] ?? res["data"]?["url"];
+        if (url != null && url.toString().isNotEmpty) {
+          return url.toString();
+        }
+        // If success but no URL, return a placeholder to indicate success
+        return "SUCCESS_NO_URL";
+      }
+      throw Exception(res["message"] ?? "Failed to upload letter photo");
+    } catch (e) {
+      debugPrint("UPLOAD LETTER ERROR: $e");
+      rethrow;
+    }
+  }
+
+  static Future<String?> uploadOutingPhoto(
+    File imageFile, {
+    required int outingId,
+  }) async {
+    try {
+      final String? token = _box.read<String>("token");
+      if (token == null || token.isEmpty) {
+        throw Exception("Session expired. Please login again.");
+      }
+
+      final Uri url = Uri.parse(
+        ApiCollection.baseUrl + ApiCollection.updateOutingPhoto,
+      );
+
+      final request = http.MultipartRequest("POST", url)
+        ..headers["Accept"] = "application/json"
+        ..headers["Authorization"] = "Bearer $token"
+        ..fields["id"] = outingId.toString()
+        ..files.add(
+          await http.MultipartFile.fromPath(
+            "pic", // field name expected by backend
+            imageFile.path,
+          ),
+        );
+
+      final streamed = await request.send().timeout(
+        const Duration(seconds: 30),
+      );
+      final body = await streamed.stream.bytesToString();
+      debugPrint("UPLOAD PHOTO [${streamed.statusCode}]: $body");
+
+      if (streamed.statusCode == 401) {
+        _box.remove("token");
+        throw Exception("Unauthorized");
+      }
+      if (streamed.statusCode != 200) {
+        throw Exception("Upload Error ${streamed.statusCode}: $body");
+      }
+
+      final res = jsonDecode(body);
+
+      final bool isSuccess =
+          res["success"] == true ||
+          res["success"] == "true" ||
+          res["success"] == "ture" ||
+          res["success"] == 1;
+
+      if (isSuccess) {
+        final photoUrl =
+            res["url"] ?? res["image_url"] ?? res["pic"] ?? res["data"]?["url"];
+        return photoUrl?.toString() ?? "SUCCESS_NO_URL";
+      }
+      throw Exception(
+        res["message"] ?? res["errors"] ?? "Failed to upload photo",
+      );
+    } catch (e) {
+      debugPrint("UPLOAD PHOTO ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ================= STORE OUTING =================
+  static Future<void> storeOuting({
+    required int sid,
+    required String admNo,
+    required String studentName,
+    required String outDate,
+    required String outTime,
+    required String outingType,
+    required String purpose,
+    required String letterPhoto,
+  }) async {
+    final String? token = _box.read<String>("token");
+    if (token == null || token.isEmpty) {
+      throw Exception("Session expired. Please login again.");
+    }
+
+    final Uri url = Uri.parse(
+      ApiCollection.baseUrl + ApiCollection.storeOuting,
+    );
+
+    // Backend expects multipart/form-data with these exact field names (from Postman)
+    final request = http.MultipartRequest("POST", url)
+      ..headers["Accept"] = "application/json"
+      ..headers["Authorization"] = "Bearer $token"
+      ..fields["sid"] = sid.toString()
+      ..fields["admno"] = admNo
+      ..fields["name"] = studentName
+      ..fields["outing_date"] = outDate
+      ..fields["outtime"] = outTime
+      ..fields["passtype"] = outingType
+      ..fields["purpose"] = purpose
+      ..fields["letterpic"] = letterPhoto;
+
+    final streamed = await request.send().timeout(const Duration(seconds: 20));
+    final body = await streamed.stream.bytesToString();
+    debugPrint("STORE OUTING [${streamed.statusCode}]: $body");
+
+    if (body.trim().isEmpty) {
+      if (streamed.statusCode == 200) return;
+      throw Exception("Empty response (${streamed.statusCode})");
+    }
+
+    if (streamed.statusCode == 401) {
+      _box.remove("token");
+      throw Exception("Unauthorized");
+    }
+
+    if (streamed.statusCode != 200) {
+      throw Exception("API Error ${streamed.statusCode}: $body");
+    }
+
+    final res = jsonDecode(body);
+    final bool isSuccess =
+        res["success"] == true ||
+        res["success"] == "true" ||
+        res["success"] == 1;
+
+    if (!isSuccess) {
+      throw Exception(res["message"] ?? "Failed to store outing");
+    }
+  }
+
+  // ================= INREPORT OUTING =================
+  static Future<void> inreportOuting(int outingId) async {
+    final res = await getRequest(ApiCollection.inreportOuting(outingId));
+
+    final bool isSuccess =
+        res["success"] == true ||
+        res["success"] == "true" ||
+        res["success"] == 1;
+
+    if (!isSuccess) {
+      throw Exception(res["message"] ?? "Failed to report in");
+    }
+  }
+
+  // ================= APPROVE OUTING =================
+  static Future<void> approveOuting(int outingId) async {
+    final res = await getRequest(ApiCollection.approveOuting(outingId));
+
+    final bool isSuccess =
+        res["success"] == true ||
+        res["success"] == "true" ||
+        res["success"] == 1;
+
+    if (!isSuccess) {
+      throw Exception(res["message"] ?? "Failed to approve outing");
+    }
   }
 
   // ================= DEPARTMENTS =================
@@ -447,14 +722,50 @@ class ApiService {
 
     debugPrint("VERIFY ATTENDANCE RESPONSE: $res");
 
+    final List? data = res["indexdata"] ?? res["data"];
     if ((res["success"] == true ||
             res["success"] == "true" ||
             res["success"] == 1) &&
-        res["indexdata"] != null) {
-      return List<Map<String, dynamic>>.from(res["indexdata"]);
+        data != null) {
+      return List<Map<String, dynamic>>.from(data);
     }
 
     return []; // 👈 empty list is valid (same as Postman)
+  }
+
+  static Future<dynamic> storeVerifyAttendance({
+    required List<int> branchIds,
+    required List<int> groupIds,
+    required List<int> courseIds,
+    required List<int> batchIds,
+    required List<int> totalStrengths,
+    required List<int> totalPresents,
+    required List<int> totalAbsents,
+  }) async {
+    final endpoint = ApiCollection.verifyStoreAttendance(
+      branchIds: branchIds,
+      groupIds: groupIds,
+      courseIds: courseIds,
+      batchIds: batchIds,
+      totalStrengths: totalStrengths,
+      totalPresents: totalPresents,
+      totalAbsents: totalAbsents,
+    );
+
+    final res = await getRequest(endpoint);
+
+    debugPrint("STORE VERIFY ATTENDANCE RESPONSE: $res");
+
+    final bool isSuccess =
+        res["success"] == true ||
+        res["success"] == "true" ||
+        res["success"] == 1;
+
+    if (!isSuccess) {
+      throw Exception(res["message"] ?? "Failed to store verified attendance");
+    }
+
+    return res;
   }
 
   // ================= MONTHLY CLASS ATTENDANCE =================
@@ -492,6 +803,42 @@ class ApiService {
     return [];
   }
 
+  // ================= STORE CLASS ATTENDANCE =================
+  static Future<dynamic> storeStudentAttendance({
+    required int branchId,
+    required int groupId,
+    required int courseId,
+    required int batchId,
+    required int shiftId,
+    required List<int> sidList,
+    required List<String> statusList,
+  }) async {
+    final endpoint = ApiCollection.storeStudentAttendance(
+      branchId: branchId,
+      groupId: groupId,
+      courseId: courseId,
+      batchId: batchId,
+      shiftId: shiftId,
+      sidList: sidList,
+      statusList: statusList,
+    );
+
+    final res = await getRequest(endpoint);
+
+    debugPrint("STORE STUDENT ATTENDANCE RESPONSE: $res");
+
+    final isSuccess =
+        res["success"] == true ||
+        res["success"] == "true" ||
+        res["success"] == 1;
+
+    if (!isSuccess) {
+      throw Exception(res["message"] ?? "Failed to save class attendance");
+    }
+
+    return res;
+  }
+
   // ================= OUTING LIST (RAW RESPONSE) =================
   static Future<Map<String, dynamic>> getOutingListRaw({
     String? branch,
@@ -527,6 +874,16 @@ class ApiService {
     }
 
     throw Exception("Failed to load pending outing list");
+  }
+
+  static Future<Map<String, dynamic>> getOutingDetails(int id) async {
+    final res = await getRequest(ApiCollection.outingDetails(id));
+
+    if (res["success"] == true || res["success"] == "true") {
+      return res;
+    }
+
+    throw Exception(res["message"] ?? "Failed to load outing details");
   }
 
   // ================= HOSTEL ATTENDANCE (NEW) =================
@@ -579,6 +936,8 @@ class ApiService {
       statusList: statusList,
     );
 
+    debugPrint("GET REQUEST [/store_hostel_attendace] URL: $endpoint");
+
     final res = await getRequest(endpoint);
 
     debugPrint("STORE HOSTEL ATTENDANCE RESPONSE: $res");
@@ -593,7 +952,6 @@ class ApiService {
     }
   }
 
-  /// 3️⃣ Get rooms summary (for dashboard/results page)
   static Future<List<Map<String, dynamic>>> getRoomsAttendanceSummary({
     required String branch,
     required String date,
@@ -601,21 +959,31 @@ class ApiService {
     required String floor,
     required String room,
   }) async {
-    final res = await postRequest(
-      ApiCollection.roomsAttendanceEndpoint,
-      body: {
-        "branch": branch,
-        "date": date,
-        "hostel": hostel,
-        "floor": floor,
-        "room": room,
-      },
-    );
+    final endpoint = ApiCollection.roomsAttendance();
+    final body = {
+      "branch": branch,
+      "date": date,
+      "hostel": hostel,
+      "floor": floor,
+      "room": room,
+    };
 
-    debugPrint("ROOMS ATTENDANCE SUMMARY RESPONSE: $res");
+    debugPrint("POST REQUEST [/rooms-attendance] BODY: $body");
+
+    final res = await postRequest(endpoint, body: body);
+
+    debugPrint("FULL API RESPONSE [/rooms-attendance]: $res");
 
     if (res["rooms"] != null && res["rooms"] is List) {
       return List<Map<String, dynamic>>.from(res["rooms"]);
+    }
+
+    if (res["indexdata"] != null && res["indexdata"] is List) {
+      return List<Map<String, dynamic>>.from(res["indexdata"]);
+    }
+
+    if (res["data"] != null && res["data"] is List) {
+      return List<Map<String, dynamic>>.from(res["data"]);
     }
 
     return [];

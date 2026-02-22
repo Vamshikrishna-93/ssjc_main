@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/exams_controller.dart';
 import '../model/exam_model.dart';
+import '../widgets/skeleton.dart';
 
 class ExamsListPage extends StatefulWidget {
   const ExamsListPage({super.key});
@@ -61,10 +62,7 @@ class _ExamsListPageState extends State<ExamsListPage> {
               : const LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFFF5F6FA),
-                    Color(0xFFF5F6FA),
-                  ],
+                  colors: [Color(0xFFF5F6FA), Color(0xFFF5F6FA)],
                 ),
         ),
         child: Column(
@@ -117,17 +115,16 @@ class _ExamsListPageState extends State<ExamsListPage> {
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: SkeletonList(itemCount: 5),
                   );
                 }
 
                 final List<ExamModel> exams = controller.filteredExams;
 
                 if (exams.isEmpty) {
-                  return const Center(
-                    child: Text("No exams found"),
-                  );
+                  return const Center(child: Text("No exams found"));
                 }
 
                 return ListView.builder(
@@ -198,7 +195,10 @@ class _ExamsListPageState extends State<ExamsListPage> {
                                   isDark,
                                 ),
                                 _infoRow(
-                                    "Months", exam.attendanceMonths, isDark),
+                                  "Months",
+                                  exam.attendanceMonths,
+                                  isDark,
+                                ),
                                 _infoRow("Campus", exam.branchName, isDark),
                                 _infoRow("Status", "Scheduled", isDark),
                               ],
@@ -216,8 +216,9 @@ class _ExamsListPageState extends State<ExamsListPage> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color:
-                                      isDark ? Colors.white70 : Colors.black87,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black87,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -236,10 +237,7 @@ class _ExamsListPageState extends State<ExamsListPage> {
                                   ),
                                   InkWell(
                                     onTap: () {
-                                      Get.snackbar(
-                                        "Activate",
-                                        exam.examName,
-                                      );
+                                      Get.snackbar("Activate", exam.examName);
                                     },
                                     child: Container(
                                       padding: const EdgeInsets.all(4),

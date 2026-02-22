@@ -34,6 +34,35 @@ class AppStorage {
     return _box.read('isLoggedIn') ?? false;
   }
 
+  // ---------------- ROLE & PERMISSIONS ----------------
+  static void saveUserRole(String role) {
+    _box.write('role', role);
+  }
+
+  static String? getUserRole() {
+    return _box.read('role');
+  }
+
+  static void saveLoginType(String type) {
+    _box.write('login_type', type);
+  }
+
+  static String? getLoginType() {
+    return _box.read('login_type');
+  }
+
+  static void savePermissions(List<String> permissions) {
+    _box.write('permissions', permissions);
+  }
+
+  static List<String> getPermissions() {
+    final list = _box.read('permissions');
+    if (list is List) {
+      return List<String>.from(list);
+    }
+    return [];
+  }
+
   // ---------------- MULTI-USER SESSIONS ----------------
   static void saveUserSession(Map<String, dynamic> userData, String token) {
     if (userData['user_login'] == null) return;
@@ -52,6 +81,9 @@ class AppStorage {
       'userid': userData['userid'],
       'email': userData['email'] ?? '',
       'mobile': userData['mobile'] ?? '',
+      'login_type': userData['login_type'] ?? '',
+      'role': userData['role'] ?? '',
+      'permissions': userData['permissions'] ?? [],
     };
 
     savedUsers.add(sessionData);
@@ -81,6 +113,9 @@ class AppStorage {
     _box.remove('token');
     _box.remove('userid');
     _box.remove('isLoggedIn');
+    _box.remove('role');
+    _box.remove('login_type');
+    _box.remove('permissions');
   }
 
   static void clearAll() {

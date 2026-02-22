@@ -4,6 +4,7 @@ import '../model/student_model.dart';
 import '../model/student_details_model.dart';
 import '../api/api_service.dart';
 import '../controllers/hostel_controller.dart';
+import '../widgets/skeleton.dart';
 
 class StudentDetailsPage extends StatefulWidget {
   final StudentModel? student;
@@ -106,7 +107,7 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
             ),
           ),
           body: isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? _buildSkeleton(context, isDark)
               : errorMessage != null && studentDetails == null
               ? Center(
                   child: Padding(
@@ -541,6 +542,38 @@ class _StudentDetailsPageState extends State<StudentDetailsPage> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeleton(BuildContext context, bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SkeletonLoader(
+            width: double.infinity,
+            height: 200,
+            borderRadius: 16,
+          ),
+          const SizedBox(height: 24),
+          const SkeletonLoader(width: 150, height: 24),
+          const SizedBox(height: 12),
+          const SkeletonLoader(
+            width: double.infinity,
+            height: 120,
+            borderRadius: 20,
+          ),
+          const SizedBox(height: 24),
+          const SkeletonLoader(width: 150, height: 24),
+          const SizedBox(height: 12),
+          const SkeletonLoader(
+            width: double.infinity,
+            height: 160,
+            borderRadius: 20,
           ),
         ],
       ),

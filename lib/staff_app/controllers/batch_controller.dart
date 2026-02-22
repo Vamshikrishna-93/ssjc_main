@@ -18,16 +18,23 @@ class BatchController extends GetxController {
         ApiCollection.batchesByCourse(courseId),
       );
 
+      // 🔍 DEBUG LOGS
+      print("BATCH API RESPONSE FOR COURSE $courseId: $res");
+
       final success = res['success'] == true || res['success'] == "true";
 
-      if (success && res['indexdata'] != null) {
-        batches.assignAll(
-          (res['indexdata'] as List)
-              .map((e) => BatchModel.fromJson(e))
-              .toList(),
-        );
+      // Look for batches in 'indexdata' or 'data' or 'batches' or 'list'
+      final dynamic rawData =
+          res['indexdata'] ?? res['data'] ?? res['batches'] ?? res['list'];
+
+      if (success && rawData != null && rawData is List) {
+        batches.assignAll(rawData.map((e) => BatchModel.fromJson(e)).toList());
+        print("LOADED ${batches.length} BATCHES");
+      } else {
+        print("NO BATCHES FOUND OR DATA NULL");
       }
     } catch (e) {
+      print("BATCH LOADING ERROR: $e");
       Get.snackbar("Error", "Failed to load batches");
     } finally {
       isLoading.value = false;

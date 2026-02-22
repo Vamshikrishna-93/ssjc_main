@@ -21,7 +21,11 @@ class HostelStudentModel {
 
   factory HostelStudentModel.fromJson(Map<String, dynamic> json) {
     return HostelStudentModel(
-      sid: int.tryParse(json['sid']?.toString() ?? '0') ?? 0,
+      sid:
+          int.tryParse(
+            json['sid']?.toString() ?? json['id']?.toString() ?? '0',
+          ) ??
+          0,
       admno: json['admno']?.toString() ?? '',
       studentName:
           json['student_name']?.toString() ??

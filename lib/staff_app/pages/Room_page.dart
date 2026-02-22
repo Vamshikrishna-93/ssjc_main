@@ -4,6 +4,7 @@ import '../controllers/hostel_controller.dart';
 import '../controllers/branch_controller.dart';
 import '../controllers/staff_controller.dart';
 import '../widgets/search_field.dart';
+import '../widgets/skeleton.dart';
 
 class RoomsPage extends StatefulWidget {
   const RoomsPage({super.key});
@@ -148,7 +149,10 @@ class _RoomsPageState extends State<RoomsPage> {
             Expanded(
               child: Obx(() {
                 if (_hostelController.isLoading.value) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: SkeletonList(itemCount: 5),
+                  );
                 }
 
                 final filtered = _hostelController.roomsList.where((r) {

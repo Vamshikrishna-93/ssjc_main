@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:student_app/staff_app/controllers/branch_controller.dart';
 import 'package:student_app/staff_app/controllers/fee_controller.dart';
+import 'package:student_app/staff_app/widgets/skeleton.dart';
 
 final TextEditingController searchCtrl = TextEditingController();
 
@@ -181,7 +182,10 @@ class _FeeHeadPageState extends State<FeeHeadPage> {
               Expanded(
                 child: Obx(() {
                   if (feeCtrl.isLoading.value) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: SkeletonList(itemCount: 5),
+                    );
                   }
 
                   if (feeCtrl.feeHeads.isEmpty) {

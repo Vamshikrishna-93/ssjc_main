@@ -46,6 +46,7 @@ dependencies:
   get_storage: ^2.1.1
   url_launcher: ^6.3.2
   collection: ^1.19.1
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:

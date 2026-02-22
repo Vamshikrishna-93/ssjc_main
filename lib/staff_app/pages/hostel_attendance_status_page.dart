@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/hostel_controller.dart';
+import '../widgets/skeleton.dart';
 
 class HostelAttendanceStatusPage extends StatelessWidget {
   const HostelAttendanceStatusPage({super.key});
@@ -44,7 +45,10 @@ class HostelAttendanceStatusPage extends StatelessWidget {
         child: SafeArea(
           child: Obx(() {
             if (hostelCtrl.isLoading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: SkeletonList(itemCount: 5),
+              );
             }
 
             if (hostelCtrl.roomsSummary.isEmpty) {
@@ -88,10 +92,6 @@ class _AttendanceStatusCard extends StatelessWidget {
     final homePass = int.tryParse(row['home_pass']?.toString() ?? '0') ?? 0;
     final selfOuting = int.tryParse(row['self_outing']?.toString() ?? '0') ?? 0;
     final selfHome = int.tryParse(row['self_home']?.toString() ?? '0') ?? 0;
-
-    // Calculate missing/absent
-    final accountedFor = present + outing + homePass + selfOuting + selfHome;
-    final missing = (total - accountedFor).clamp(0, total);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -189,8 +189,8 @@ class _AttendanceStatusCard extends StatelessWidget {
               final double width = constraints.maxWidth;
               // 4 items in first row, so roughly width / 4 minus spacing
               final double itemWidth4 = (width - 3 * 8) / 4;
-              // 3 items in second row, width / 3 minus spacing
-              final double itemWidth3 = (width - 2 * 8) / 3;
+              // 2 items in second row, width / 2 minus spacing
+              final double itemWidth2 = (width - 8) / 2;
 
               return Column(
                 children: [
@@ -225,27 +225,21 @@ class _AttendanceStatusCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  // ROW 2: Missing, Self Outing, Self Home
+                  // ROW 2: Self Outing, Self Home
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _MetricBadge(
-                        label: "Missing",
-                        value: "$missing",
-                        color: Colors.redAccent,
-                        width: itemWidth3,
-                      ),
-                      _MetricBadge(
                         label: "Self Outing",
                         value: "$selfOuting",
                         color: Colors.cyan,
-                        width: itemWidth3,
+                        width: itemWidth2,
                       ),
                       _MetricBadge(
                         label: "Self Home",
                         value: "$selfHome",
                         color: Colors.lightGreenAccent, // Yellowish green
-                        width: itemWidth3,
+                        width: itemWidth2,
                       ),
                     ],
                   ),

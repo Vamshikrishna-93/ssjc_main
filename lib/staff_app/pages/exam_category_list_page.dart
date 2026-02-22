@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../controllers/branch_controller.dart';
 import '../controllers/exam_category_controller.dart';
 import '../model/branch_model.dart';
+import '../widgets/skeleton.dart';
 
 class ExamCategoryListPage extends StatefulWidget {
   const ExamCategoryListPage({super.key});
@@ -145,7 +146,10 @@ class _ExamCategoryListPageState extends State<ExamCategoryListPage> {
                 Expanded(
                   child: Obx(() {
                     if (categoryCtrl.isLoading.value) {
-                      return const Center(child: CircularProgressIndicator());
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: SkeletonList(itemCount: 5),
+                      );
                     }
 
                     if (selectedBranchId == null) {

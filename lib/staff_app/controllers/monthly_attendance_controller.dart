@@ -29,7 +29,12 @@ class MonthlyAttendanceController extends GetxController {
         ),
       );
 
-      if (res['success'] == "true" && res['indexdata'] != null) {
+      final bool isSuccess =
+          res['success'] == true ||
+          res['success'] == "true" ||
+          res['success'] == 1;
+
+      if (isSuccess && res['indexdata'] != null) {
         attendanceList.assignAll(res['indexdata']);
       }
     } catch (e) {

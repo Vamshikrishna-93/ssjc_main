@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../widgets/search_field.dart';
+import '../widgets/skeleton.dart';
 import '../controllers/hostel_controller.dart';
 import 'hostel_attendance_mark_page.dart';
 
@@ -101,7 +102,10 @@ class _HostelAttendanceResultPageState
             Expanded(
               child: Obx(() {
                 if (hostelCtrl.isLoading.value) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: SkeletonList(itemCount: 5),
+                  );
                 }
 
                 final filtered = hostelCtrl.roomsSummary.where((row) {
@@ -149,18 +153,6 @@ class _HostelAttendanceResultPageState
     final selfOuting = int.tryParse(row['self_outing']?.toString() ?? '0') ?? 0;
     final selfHome = int.tryParse(row['self_home']?.toString() ?? '0') ?? 0;
 
-    // Calculate absent or use missing if available?
-    // Usually: Absent = Total - (Present + Outing + HomePass + ...)
-    // But for now let's just use Total - Present as 'Not Present' or
-    // maybe verify if 'missing' field exists? The API screenshot doesn't show it clearly.
-    // Let's stick to Total - Present for "Absent/Missing" generally,
-    // OR just display "Missing" if we want to be specific about who is not accounted for.
-    // However, if someone is on Outing, they are not "Present" in room, but valid.
-    // Let's display "Missing" as (Total - Present - Outing - HomePass - SelfOuting - SelfHome).
-
-    final accountedFor = present + outing + homePass + selfOuting + selfHome;
-    final missing = (total - accountedFor).clamp(0, total);
-
     return InkWell(
       onTap: () {
         Get.to(
@@ -169,6 +161,7 @@ class _HostelAttendanceResultPageState
             'room_id': row['room'],
             'room_name': row['room']?.toString() ?? 'N/A',
             'floor_name': row['floor'],
+            'date': hostelCtrl.activeDate.value,
           },
         );
       },
@@ -272,8 +265,6 @@ class _HostelAttendanceResultPageState
                   ),
                 if (selfHome > 0)
                   _badge(Icons.cottage, "Self Home: $selfHome", Colors.brown),
-                // Show Missing/Absent in Red
-                _badge(Icons.cancel, "Missing: $missing", Colors.redAccent),
               ],
             ),
           ],

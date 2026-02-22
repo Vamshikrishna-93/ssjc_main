@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/hostel_controller.dart';
 import '../model/hostel_grid_model.dart';
+import '../widgets/skeleton.dart';
 
 class HostelAttendanceGridPage extends StatefulWidget {
   final int sid;
@@ -24,7 +25,6 @@ class _HostelAttendanceGridPageState extends State<HostelAttendanceGridPage> {
   final HostelController hostelCtrl = Get.find<HostelController>();
 
   // COLORS
-  static const Color neon = Color(0xFF00FFF5);
   static const Color darkNavy = Color(0xFF1a1a2e);
   static const Color darkBlue = Color(0xFF16213e);
   static const Color midBlue = Color(0xFF0f3460);
@@ -81,8 +81,9 @@ class _HostelAttendanceGridPageState extends State<HostelAttendanceGridPage> {
         child: SafeArea(
           child: Obx(() {
             if (hostelCtrl.isLoading.value) {
-              return const Center(
-                child: CircularProgressIndicator(color: neon),
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: SkeletonList(itemCount: 5),
               );
             }
 

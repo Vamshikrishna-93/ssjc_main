@@ -52,6 +52,4 @@ class OutingPendingController extends GetxController {
       );
     }
   }
-
-  void fetchPendingOutings() {}
 }

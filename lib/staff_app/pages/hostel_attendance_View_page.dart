@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:student_app/staff_app/controllers/hostel_controller.dart';
 import '../controllers/branch_controller.dart';
+import '../widgets/skeleton.dart';
 
 import 'hostel_attendance_status_page.dart';
 
@@ -35,30 +36,8 @@ class _HostelAttendanceFilterPageState
   @override
   void initState() {
     super.initState();
-
     // 1️⃣ Load branches
     branchCtrl.loadBranches();
-
-    // 2️⃣ Listen branch list
-    ever(branchCtrl.branches, (_) {
-      // Auto select first branch
-      if (branchCtrl.branches.isNotEmpty && _branch == null) {
-        final b = branchCtrl.branches.first;
-        setState(() => _branch = b.branchName);
-        hostelCtrl.loadHostelsByBranch(b.id);
-      }
-    });
-
-    // 3️⃣ Listen hostel list
-    ever(hostelCtrl.hostels, (_) {
-      // Auto select first hostel
-      if (hostelCtrl.hostels.isNotEmpty && _hostel == null) {
-        final h = hostelCtrl.hostels.first;
-        setState(() => _hostel = h.buildingName);
-        hostelCtrl.selectedHostel.value = h;
-        hostelCtrl.loadFloorsAndRooms(h.id);
-      }
-    });
   }
 
   @override
@@ -133,90 +112,98 @@ class _HostelAttendanceFilterPageState
               children: [
                 // BRANCH
                 Obx(
-                  () => _neonDropdown(
-                    context,
-                    label: "Select Branch",
-                    icon: Icons.school,
-                    iconColor: neon,
-                    value: _branch,
-                    items: branchCtrl.branches
-                        .map((b) => b.branchName)
-                        .toList(),
-                    onChanged: (v) {
-                      setState(() {
-                        _branch = v;
-                        _hostel = _floor = _room = null;
-                      });
+                  () => branchCtrl.isLoading.value
+                      ? const SkeletonLoader(width: double.infinity, height: 60)
+                      : _neonDropdown(
+                          context,
+                          label: "Select Branch",
+                          icon: Icons.school,
+                          iconColor: neon,
+                          value: _branch,
+                          items: branchCtrl.branches
+                              .map((b) => b.branchName)
+                              .toList(),
+                          onChanged: (v) {
+                            setState(() {
+                              _branch = v;
+                              _hostel = _floor = _room = null;
+                            });
 
-                      final branchObj = branchCtrl.branches.firstWhere(
-                        (b) => b.branchName == v,
-                      );
-                      hostelCtrl.loadHostelsByBranch(branchObj.id);
-                    },
-                  ),
+                            final branchObj = branchCtrl.branches.firstWhere(
+                              (b) => b.branchName == v,
+                            );
+                            hostelCtrl.loadHostelsByBranch(branchObj.id);
+                          },
+                        ),
                 ),
                 const SizedBox(height: 14),
 
                 // HOSTEL
                 Obx(
-                  () => _neonDropdown(
-                    context,
-                    label: "Select Hostel",
-                    icon: Icons.apartment,
-                    iconColor: Colors.purpleAccent,
-                    value: _hostel,
-                    items: hostelCtrl.hostels
-                        .map((h) => h.buildingName)
-                        .toList(),
-                    onChanged: (v) {
-                      setState(() {
-                        _hostel = v;
-                        _floor = _room = null;
-                      });
+                  () => hostelCtrl.isLoading.value && _branch != null
+                      ? const SkeletonLoader(width: double.infinity, height: 60)
+                      : _neonDropdown(
+                          context,
+                          label: "Select Hostel",
+                          icon: Icons.apartment,
+                          iconColor: Colors.purpleAccent,
+                          value: _hostel,
+                          items: hostelCtrl.hostels
+                              .map((h) => h.buildingName)
+                              .toList(),
+                          onChanged: (v) {
+                            setState(() {
+                              _hostel = v;
+                              _floor = _room = null;
+                            });
 
-                      final h = hostelCtrl.hostels.firstWhere(
-                        (h) => h.buildingName == v,
-                      );
-                      hostelCtrl.selectedHostel.value = h;
-                      hostelCtrl.loadFloorsAndRooms(h.id);
-                    },
-                  ),
+                            final h = hostelCtrl.hostels.firstWhere(
+                              (h) => h.buildingName == v,
+                            );
+                            hostelCtrl.selectedHostel.value = h;
+                            hostelCtrl.loadFloorsAndRooms(h.id);
+                          },
+                        ),
                 ),
                 const SizedBox(height: 14),
 
                 // FLOOR
                 Obx(
-                  () => _neonDropdown(
-                    context,
-                    label: "Select Floor",
-                    icon: Icons.layers,
-                    iconColor: Colors.blueAccent,
-                    value: _floor,
-                    items: hostelCtrl.floors,
-                    onChanged: (v) {
-                      setState(() {
-                        _floor = v;
-                        _room = null;
-                      });
-                      if (v != null) {
-                        hostelCtrl.filterRoomsByFloor(v);
-                      }
-                    },
-                  ),
+                  () => hostelCtrl.isLoading.value && _hostel != null
+                      ? const SkeletonLoader(width: double.infinity, height: 60)
+                      : _neonDropdown(
+                          context,
+                          label: "Select Floor",
+                          icon: Icons.layers,
+                          iconColor: Colors.blueAccent,
+                          value: _floor,
+                          items: hostelCtrl.floors,
+                          onChanged: (v) {
+                            setState(() {
+                              _floor = v;
+                              _room = null;
+                            });
+                            if (v != null) {
+                              hostelCtrl.filterRoomsByFloor(v);
+                            }
+                          },
+                        ),
                 ),
                 const SizedBox(height: 14),
 
                 // ROOM
                 Obx(
-                  () => _neonDropdown(
-                    context,
-                    label: "Select Room",
-                    icon: Icons.meeting_room,
-                    iconColor: Colors.pinkAccent,
-                    value: _room,
-                    items: hostelCtrl.rooms,
-                    onChanged: (v) => setState(() => _room = v),
-                  ),
+                  () => hostelCtrl.isLoading.value && _floor != null
+                      ? const SkeletonLoader(width: double.infinity, height: 60)
+                      : _neonDropdown(
+                          context,
+                          label: "Select Room",
+                          icon: Icons.meeting_room,
+                          iconColor: Colors.pinkAccent,
+                          value: _room,
+                          items: hostelCtrl.rooms,
+                          onChanged: (v) => setState(() => _room = v),
+                        ),
                 ),
                 const SizedBox(height: 14),
 
@@ -283,12 +270,19 @@ class _HostelAttendanceFilterPageState
                                 return;
                               }
 
+                              final branchObj = branchCtrl.branches.firstWhere(
+                                (b) => b.branchName == _branch,
+                              );
+                              final hostelObj = hostelCtrl.hostels.firstWhere(
+                                (h) => h.buildingName == _hostel,
+                              );
+
                               await hostelCtrl.loadRoomAttendanceSummary(
-                                branch: _branch!,
+                                branch: branchObj.id.toString(),
                                 date: _selectedDate.toIso8601String().split(
                                   'T',
                                 )[0],
-                                hostel: _hostel!,
+                                hostel: hostelObj.id.toString(),
                                 floor: _floor ?? 'All',
                                 room: _room ?? 'All',
                               );
@@ -347,10 +341,17 @@ class _HostelAttendanceFilterPageState
                             return;
                           }
 
+                          final branchObj = branchCtrl.branches.firstWhere(
+                            (b) => b.branchName == _branch!,
+                          );
+                          final hostelObj = hostelCtrl.hostels.firstWhere(
+                            (h) => h.buildingName == _hostel!,
+                          );
+
                           await hostelCtrl.loadRoomAttendanceSummary(
-                            branch: _branch!,
+                            branch: branchObj.id.toString(),
                             date: _selectedDate.toIso8601String().split('T')[0],
-                            hostel: _hostel!,
+                            hostel: hostelObj.id.toString(),
                             floor: _floor ?? 'All',
                             room: _room ?? 'All',
                           );

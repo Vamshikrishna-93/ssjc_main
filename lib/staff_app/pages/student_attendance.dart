@@ -259,63 +259,78 @@ class _StudentAttendancePageState extends State<StudentAttendancePage> {
                   }),
                 ),
                 const SizedBox(height: 10),
-                SizedBox(
-                  height: 52,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: neon,
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    onPressed: () async {
-                      if ([
-                        branch,
-                        group,
-                        course,
-                        batch,
-                        shift,
-                        month,
-                      ].contains(null)) {
-                        Get.snackbar("Error", "Please select all filters");
-                        return;
-                      }
-
-                      await attendanceCtrl.loadAttendance(
-                        branchId: branchCtrl.branches
-                            .firstWhere((e) => e.branchName == branch!)
-                            .id,
-                        groupId: groupCtrl.groups
-                            .firstWhere((e) => e.name == group!)
-                            .id,
-                        courseId: courseCtrl.courses
-                            .firstWhere((e) => e.courseName == course!)
-                            .id,
-                        batchId: batchCtrl.batches
-                            .firstWhere((e) => e.batchName == batch!)
-                            .id,
-                        shiftId: shiftCtrl.shifts
-                            .firstWhere((e) => e.shiftName == shift!)
-                            .id,
-                        month: month!,
-                      );
-
-                      Get.to(
-                        () => StudentMonthAttendancePage(
-                          studentName: "Students",
-                          monthName: selectedMonthName!,
-                          year: DateTime.now().year,
-                          admNo: '',
+                Obx(
+                  () => SizedBox(
+                    height: 52,
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: neon,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                      );
-                    },
-                    child: const Text(
-                      "Get Students",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
                       ),
+                      onPressed: attendanceCtrl.isLoading.value
+                          ? null
+                          : () async {
+                              if ([
+                                branch,
+                                group,
+                                course,
+                                batch,
+                                shift,
+                                month,
+                              ].contains(null)) {
+                                Get.snackbar(
+                                  "Error",
+                                  "Please select all filters",
+                                );
+                                return;
+                              }
+
+                              await attendanceCtrl.loadAttendance(
+                                branchId: branchCtrl.branches
+                                    .firstWhere((e) => e.branchName == branch!)
+                                    .id,
+                                groupId: groupCtrl.groups
+                                    .firstWhere((e) => e.name == group!)
+                                    .id,
+                                courseId: courseCtrl.courses
+                                    .firstWhere((e) => e.courseName == course!)
+                                    .id,
+                                batchId: batchCtrl.batches
+                                    .firstWhere((e) => e.batchName == batch!)
+                                    .id,
+                                shiftId: shiftCtrl.shifts
+                                    .firstWhere((e) => e.shiftName == shift!)
+                                    .id,
+                                month: month!,
+                              );
+
+                              Get.to(
+                                () => StudentMonthAttendancePage(
+                                  studentName: "Students",
+                                  monthName: selectedMonthName!,
+                                  year: DateTime.now().year,
+                                  admNo: '',
+                                ),
+                              );
+                            },
+                      child: attendanceCtrl.isLoading.value
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.black,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              "Get Students",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ),

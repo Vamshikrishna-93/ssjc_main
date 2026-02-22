@@ -1,7 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:student_app/staff_app/api/api_service.dart';
 import 'package:student_app/staff_app/model/outing_model.dart';
 import 'package:student_app/staff_app/model/OutingInfo.dart';
+import 'package:student_app/staff_app/controllers/branch_controller.dart';
 
 class OutingController extends GetxController {
   // ================= LOADING =================
@@ -10,6 +12,7 @@ class OutingController extends GetxController {
   // ================= OUTING LIST =================
   final RxList<OutingModel> outingList = <OutingModel>[].obs;
   final RxList<OutingModel> filteredList = <OutingModel>[].obs;
+  final RxList<OutingModel> selectedStudentOutings = <OutingModel>[].obs;
 
   // ================= FILTER STATES =================
   final RxString selectedBranch = "All".obs;
@@ -29,10 +32,73 @@ class OutingController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    // Pre-load branches to ensure we can resolve IDs to names for filtering
+    Get.find<BranchController>().loadBranches();
     fetchOutings();
   }
 
   // ================= FETCH OUTINGS =================
+
+  Future<void> fetchStudentOutings(String identifier, {String? sid}) async {
+    try {
+      isLoading.value = true;
+      debugPrint("🔍 FETCHING HISTORY FOR IDENTIFIER: $identifier (SID: $sid)");
+
+      List<Map<String, dynamic>> data = [];
+
+      try {
+        data = await ApiService.searchOutingsByName(identifier);
+        debugPrint("📦 API HISTORY (ID) RECEIVED: ${data.length} items");
+
+        // 💡 If ID search is empty but SID is available, try searching by SID
+        if (data.isEmpty && sid != null && sid.isNotEmpty) {
+          debugPrint("🔍 TRYING SID SEARCH: $sid");
+          data = await ApiService.searchOutingsByName(sid);
+          debugPrint("📦 API HISTORY (SID) RECEIVED: ${data.length} items");
+        }
+      } catch (apiErr) {
+        debugPrint("❌ API ERROR IN SEARCH: $apiErr");
+      }
+
+      if (data.isNotEmpty) {
+        debugPrint("📦 FIRST ITEM: ${data.first}");
+      }
+
+      List<OutingModel> apiList = data
+          .map((e) => OutingModel.fromJson(e))
+          .toList();
+
+      debugPrint("📦 MAPPED LIST SIZE: ${apiList.length}");
+
+      // 🔗 FALLBACK: If API is empty, search local outingList by identifier (admNo or name)
+      if (apiList.isEmpty) {
+        debugPrint("🔗 FALLBACK: Searching local list for ID: $identifier");
+        final localHistory = outingList
+            .where(
+              (o) =>
+                  o.admno.toLowerCase().trim() ==
+                      identifier.toLowerCase().trim() ||
+                  o.studentName.toLowerCase().contains(
+                    identifier.toLowerCase().trim(),
+                  ) ||
+                  (sid != null && o.id.toString() == sid),
+            )
+            .toList();
+        debugPrint("🔗 FALLBACK FOUND: ${localHistory.length} items");
+        selectedStudentOutings.assignAll(localHistory);
+      } else {
+        selectedStudentOutings.assignAll(apiList);
+      }
+    } catch (e) {
+      debugPrint("❌ FETCH STUDENT OUTINGS CRITICAL ERROR: $e");
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ================= FETCH OUTINGS =================
+  final RxString selectedDateFilterType = "All".obs;
+
   Future<void> fetchOutings({
     String? branch,
     String? reportType,
@@ -43,16 +109,24 @@ class OutingController extends GetxController {
     try {
       isLoading.value = true;
 
+      // Use provided params or fall back to current state
+      final String targetBranch = branch ?? selectedBranch.value;
+      final String targetStatus = reportType ?? selectedStatus.value;
+      final String targetDaybook =
+          daybookFilter ?? selectedDateFilterType.value;
+      final String targetFirstDate =
+          firstDate ??
+          (fromDate != null ? fromDate!.toString().substring(0, 10) : "");
+      final String targetNextDate =
+          nextDate ??
+          (toDate != null ? toDate!.toString().substring(0, 10) : "");
+
       final Map<String, dynamic> res = await ApiService.getOutingListRaw(
-        branch: branch ?? selectedBranch.value,
-        reportType: reportType ?? selectedStatus.value,
-        daybookFilter: daybookFilter ?? "All",
-        firstDate:
-            firstDate ??
-            (fromDate != null ? fromDate!.toString().substring(0, 10) : ""),
-        nextDate:
-            nextDate ??
-            (toDate != null ? toDate!.toString().substring(0, 10) : ""),
+        branch: targetBranch,
+        reportType: targetStatus,
+        daybookFilter: targetDaybook,
+        firstDate: targetFirstDate,
+        nextDate: targetNextDate,
       );
 
       // ===== LIST DATA =====
@@ -89,14 +163,47 @@ class OutingController extends GetxController {
   void applyFilters() {
     List<OutingModel> temp = outingList.toList();
 
-    // 🔹 SEARCH (Previously we did branch/status/date filter here, but now it's server-side)
+    // 1️⃣ STRICT STATUS FILTERING
+    if (selectedStatus.value != "All") {
+      temp = temp
+          .where(
+            (o) =>
+                o.status.toLowerCase().trim() ==
+                selectedStatus.value.toLowerCase().trim(),
+          )
+          .toList();
+    }
+
+    // 2️⃣ STRICT BRANCH FILTERING
+    if (selectedBranch.value != "All") {
+      final bController = Get.find<BranchController>();
+      final String selectedId = selectedBranch.value;
+
+      // Find the branch name for the selected ID
+      final branchModel = bController.branches.firstWhereOrNull(
+        (b) => b.id.toString() == selectedId,
+      );
+      final String? selectedName = branchModel?.branchName.toLowerCase().trim();
+
+      temp = temp.where((o) {
+        final String recordBranch = o.branch.toLowerCase().trim();
+        // Match if:
+        // 1. Record branch matches selected name
+        // 2. Record branch matches selected ID (if record stores ID)
+        return (selectedName != null && recordBranch == selectedName) ||
+            recordBranch == selectedId;
+      }).toList();
+    }
+
+    // 3️⃣ SEARCH FILTERING (Checks Name, Adm No, and Outing Type)
     if (searchQuery.value.isNotEmpty) {
-      final q = searchQuery.value.toLowerCase();
+      final q = searchQuery.value.toLowerCase().trim();
       temp = temp
           .where(
             (o) =>
                 o.studentName.toLowerCase().contains(q) ||
-                o.admno.toLowerCase().contains(q),
+                o.admno.toLowerCase().contains(q) ||
+                o.outingType.toLowerCase().contains(q),
           )
           .toList();
     }
@@ -104,92 +211,58 @@ class OutingController extends GetxController {
     filteredList.assignAll(temp);
   }
 
-  // ================= FILTER ACTIONS =================
+  // ================= FILTER ACTIONS (STATE UPDATES ONLY) =================
   void search(String query) {
     searchQuery.value = query;
     applyFilters();
   }
 
-  void filterToday() {
-    isTodayFilter.value = true;
-    fromDate = null;
-    toDate = null;
-    fetchOutings(daybookFilter: "Today");
-  }
-
-  void filterByBranch(String branch) {
+  void updateBranch(String branch) {
     selectedBranch.value = branch;
-    fetchOutings(branch: branch);
   }
 
-  void filterByStatus(String status) {
+  void updateStatus(String status) {
     selectedStatus.value = status;
-    fetchOutings(reportType: status);
   }
 
-  void filterByCustomDate(DateTime from, DateTime to) {
+  void updateDateFilter(String type) {
+    selectedDateFilterType.value = type;
+    final now = DateTime.now();
+
+    if (type == "Last7Days") {
+      fromDate = now.subtract(const Duration(days: 7));
+      toDate = now;
+      selectedDateFilterType.value = "Custom";
+    } else if (type == "ThisMonth") {
+      fromDate = DateTime(now.year, now.month, 1);
+      toDate = now;
+      selectedDateFilterType.value = "Custom";
+    } else if (type == "LastMonth") {
+      fromDate = DateTime(now.year, now.month - 1, 1);
+      toDate = DateTime(now.year, now.month, 0); // Last day of previous month
+      selectedDateFilterType.value = "Custom";
+    } else if (type != "Custom") {
+      fromDate = null;
+      toDate = null;
+    }
+  }
+
+  void updateCustomDates(DateTime from, DateTime to) {
     fromDate = from;
     toDate = to;
-    isTodayFilter.value = false;
-    fetchOutings(
-      daybookFilter: "Custom",
-      firstDate: from.toString().substring(0, 10),
-      nextDate: to.toString().substring(0, 10),
-    );
-  }
-
-  // ================= DATE DROPDOWN FILTER =================
-  void filterByDate(String type) {
-    isTodayFilter.value = false;
-    fromDate = null;
-    toDate = null;
-
-    switch (type) {
-      case "Today":
-        filterToday();
-        return;
-
-      case "Yesterday":
-        fetchOutings(daybookFilter: "Yesterday");
-        break;
-
-      case "Last7Days":
-        fetchOutings(daybookFilter: "Last7Days");
-        break;
-
-      case "ThisMonth":
-        fetchOutings(daybookFilter: "ThisMonth");
-        break;
-
-      case "LastMonth":
-        fetchOutings(daybookFilter: "LastMonth");
-        break;
-
-      case "All":
-        filterAll();
-        return;
-
-      case "Custom":
-        // UI will open date picker
-        return;
-    }
+    selectedDateFilterType.value = "Custom";
   }
 
   // ================= RESET =================
   void filterAll() {
     selectedBranch.value = "All";
     selectedStatus.value = "All";
+    selectedDateFilterType.value = "All";
     isTodayFilter.value = false;
     searchQuery.value = "";
     fromDate = null;
     toDate = null;
-    fetchOutings(
-      branch: "All",
-      reportType: "All",
-      daybookFilter: "All",
-      firstDate: "",
-      nextDate: "",
-    );
+    fetchOutings();
   }
 
   // ================= COUNTS =================
@@ -200,4 +273,33 @@ class OutingController extends GetxController {
 
   int countNotReported() =>
       filteredList.where((o) => o.status == "Not Reported").length;
+
+  // ================= ACTIONS =================
+  Future<bool> addOutingRemarks(int outingId, String remarks) async {
+    try {
+      isLoading.value = true;
+      await ApiService.addOutingRemarks(outingId: outingId, remarks: remarks);
+
+      // Refresh the list after successful update
+      await fetchOutings();
+
+      Get.snackbar(
+        "Success",
+        "Remarks updated successfully",
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+      return true;
+    } catch (e) {
+      Get.snackbar(
+        "Error",
+        e.toString().replaceFirst("Exception: ", ""),
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }

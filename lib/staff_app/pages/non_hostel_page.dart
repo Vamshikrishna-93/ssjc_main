@@ -4,6 +4,7 @@ import '../controllers/non_hostel_controller.dart';
 import '../controllers/branch_controller.dart';
 import '../model/non_hostel_student_model.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/skeleton.dart';
 
 class NonHostelPage extends StatefulWidget {
   const NonHostelPage({super.key});
@@ -104,10 +105,9 @@ class _NonHostelPageState extends State<NonHostelPage> {
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
-                  return Center(
-                    child: CircularProgressIndicator(
-                      color: isDark ? Colors.blueAccent : Colors.blue,
-                    ),
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: SkeletonList(itemCount: 5),
                   );
                 }
                 if (controller.filteredList.isEmpty) {

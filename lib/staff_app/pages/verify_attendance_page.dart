@@ -5,6 +5,7 @@ import 'package:student_app/staff_app/controllers/shift_controller.dart';
 import 'package:student_app/staff_app/model/attendance_record_model.dart';
 import '../controllers/branch_controller.dart';
 import '../model/branch_model.dart';
+import '../widgets/skeleton.dart';
 
 class VerifyAttendancePage extends StatefulWidget {
   const VerifyAttendancePage({super.key});
@@ -19,6 +20,7 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
   String? selectedShift;
 
   bool isLoading = false;
+  bool isSubmitting = false;
   List<AttendanceRecord> attendanceData = [];
 
   late AnimationController _animationController;
@@ -338,14 +340,7 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
           elevation: 0,
         ),
         child: isLoading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.black,
-                ),
-              )
+            ? null
             : const Text(
                 "VERIFY ATTENDANCE",
                 style: TextStyle(
@@ -522,7 +517,7 @@ class _VerifyAttendancePageState extends State<VerifyAttendancePage>
   Widget _buildLoadingState() {
     return const Padding(
       padding: EdgeInsets.all(20),
-      child: Center(child: CircularProgressIndicator()),
+      child: SkeletonList(itemCount: 3),
     );
   }
 }

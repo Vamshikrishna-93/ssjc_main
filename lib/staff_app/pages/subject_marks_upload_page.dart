@@ -134,9 +134,7 @@ class _SubjectMarksUploadPageState extends State<SubjectMarksUploadPage> {
         backgroundColor: isDark ? const Color(0xFF1a1a2e) : Colors.white,
         title: Text(
           "Subject Marks Upload",
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black,
-          ),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black),
         ),
         leading: IconButton(
           icon: Icon(
@@ -172,81 +170,89 @@ class _SubjectMarksUploadPageState extends State<SubjectMarksUploadPage> {
                     child: Column(
                       children: [
                         /// -------- BRANCH --------
-                        Obx(() => _buildField(
-                              context: context,
-                              label: "Select Branch",
-                              icon: Icons.school,
-                              iconColor: Colors.cyanAccent,
-                              value: branch,
-                              items: branchCtrl.branches
-                                  .map((b) => b.branchName)
-                                  .toList(),
-                              onChanged: (v) {
-                                final b = branchCtrl.branches
-                                    .firstWhere((e) => e.branchName == v);
+                        Obx(
+                          () => _buildField(
+                            context: context,
+                            label: "Select Branch",
+                            icon: Icons.school,
+                            iconColor: Colors.cyanAccent,
+                            value: branch,
+                            items: branchCtrl.branches
+                                .map((b) => b.branchName)
+                                .toList(),
+                            onChanged: (v) {
+                              final b = branchCtrl.branches.firstWhere(
+                                (e) => e.branchName == v,
+                              );
 
-                                setState(() {
-                                  branch = v;
-                                  group = null;
-                                  course = null;
-                                });
+                              setState(() {
+                                branch = v;
+                                group = null;
+                                course = null;
+                              });
 
-                                groupCtrl.clear();
-                                courseCtrl.clear();
-                                groupCtrl.loadGroups(b.id);
-                              },
-                            )),
+                              groupCtrl.clear();
+                              courseCtrl.clear();
+                              groupCtrl.loadGroups(b.id);
+                            },
+                          ),
+                        ),
 
                         /// -------- GROUP --------
-                        Obx(() => _buildField(
-                              context: context,
-                              label: groupCtrl.groups.isEmpty
-                                  ? "Select Branch First"
-                                  : "Select Group",
-                              icon: Icons.group,
-                              iconColor: Colors.purpleAccent,
-                              value: group,
-                              items:
-                                  groupCtrl.groups.map((g) => g.name).toList(),
-                              onChanged: groupCtrl.groups.isEmpty
-                                  ? null
-                                  : (v) {
-                                      final g = groupCtrl.groups
-                                          .firstWhere((e) => e.name == v);
+                        Obx(
+                          () => _buildField(
+                            context: context,
+                            label: groupCtrl.groups.isEmpty
+                                ? "Select Branch First"
+                                : "Select Group",
+                            icon: Icons.group,
+                            iconColor: Colors.purpleAccent,
+                            value: group,
+                            items: groupCtrl.groups.map((g) => g.name).toList(),
+                            onChanged: groupCtrl.groups.isEmpty
+                                ? null
+                                : (v) {
+                                    final g = groupCtrl.groups.firstWhere(
+                                      (e) => e.name == v,
+                                    );
 
-                                      setState(() {
-                                        group = v;
-                                        course = null;
-                                      });
+                                    setState(() {
+                                      group = v;
+                                      course = null;
+                                    });
 
-                                      courseCtrl.clear();
-                                      courseCtrl.loadCourses(g.id);
-                                    },
-                            )),
+                                    courseCtrl.clear();
+                                    courseCtrl.loadCourses(g.id);
+                                  },
+                          ),
+                        ),
 
                         /// -------- COURSE --------
-                        Obx(() => _buildField(
-                              context: context,
-                              label: courseCtrl.courses.isEmpty
-                                  ? "Select Group First"
-                                  : "Select Course",
-                              icon: Icons.menu_book,
-                              iconColor: Colors.blueAccent,
-                              value: course,
-                              items: courseCtrl.courses
-                                  .map((c) => c.courseName)
-                                  .toList(),
-                              onChanged: courseCtrl.courses.isEmpty
-                                  ? null
-                                  : (v) {
-                                      final c = courseCtrl.courses
-                                          .firstWhere((e) => e.courseName == v);
-                                      setState(() {
-                                        course = v;
-                                        selectedCourseId = c.id;
-                                      });
-                                    },
-                            )),
+                        Obx(
+                          () => _buildField(
+                            context: context,
+                            label: courseCtrl.courses.isEmpty
+                                ? "Select Group First"
+                                : "Select Course",
+                            icon: Icons.menu_book,
+                            iconColor: Colors.blueAccent,
+                            value: course,
+                            items: courseCtrl.courses
+                                .map((c) => c.courseName)
+                                .toList(),
+                            onChanged: courseCtrl.courses.isEmpty
+                                ? null
+                                : (v) {
+                                    final c = courseCtrl.courses.firstWhere(
+                                      (e) => e.courseName == v,
+                                    );
+                                    setState(() {
+                                      course = v;
+                                      selectedCourseId = c.id;
+                                    });
+                                  },
+                          ),
+                        ),
 
                         _buildField(
                           context: context,
@@ -280,23 +286,47 @@ class _SubjectMarksUploadPageState extends State<SubjectMarksUploadPage> {
 
                         const SizedBox(height: 25),
 
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(Icons.groups, color: Colors.black),
-                            label: const Text(
-                              "Get Students",
-                              style: TextStyle(
+                        Obx(
+                          () => SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed:
+                                  (branchCtrl.isLoading.value ||
+                                      groupCtrl.isLoading.value ||
+                                      courseCtrl.isLoading.value)
+                                  ? null
+                                  : () {},
+                              icon: const Icon(
+                                Icons.groups,
                                 color: Colors.black,
-                                fontWeight: FontWeight.bold,
                               ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: neon,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                              label:
+                                  (branchCtrl.isLoading.value ||
+                                      groupCtrl.isLoading.value ||
+                                      courseCtrl.isLoading.value)
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.black,
+                                      ),
+                                    )
+                                  : const Text(
+                                      "Get Students",
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: neon,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                               ),
                             ),
                           ),
@@ -345,8 +375,10 @@ class _SubjectMarksUploadPageState extends State<SubjectMarksUploadPage> {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {},
-                        icon:
-                            const Icon(Icons.cloud_upload, color: Colors.white),
+                        icon: const Icon(
+                          Icons.cloud_upload,
+                          color: Colors.white,
+                        ),
                         label: const Text("Marks Bulk Upload"),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,

@@ -23,6 +23,8 @@ class ProfileModel {
   final String bankAcc;
   final String bank;
   final String ifsc;
+  final int roleId;
+  final int status;
 
   ProfileModel({
     required this.name,
@@ -49,6 +51,8 @@ class ProfileModel {
     required this.bankAcc,
     required this.bank,
     required this.ifsc,
+    required this.roleId,
+    required this.status,
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
@@ -77,6 +81,8 @@ class ProfileModel {
       bankAcc: json['user_bankacno'] ?? '',
       bank: json['user_bank'] ?? '',
       ifsc: json['user_ifsc'] ?? '',
+      roleId: json['role_id'] ?? 0,
+      status: json['status'] ?? 0,
     );
   }
 }

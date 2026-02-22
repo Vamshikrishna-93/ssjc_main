@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../controllers/hostel_controller.dart';
 import '../controllers/branch_controller.dart';
+import '../widgets/skeleton.dart';
 
 class AddHostelAttendancePage extends StatefulWidget {
   final String? branch;
@@ -10,6 +11,7 @@ class AddHostelAttendancePage extends StatefulWidget {
   final String? floor;
   final String? room;
   final String? month;
+  final String? date;
 
   const AddHostelAttendancePage({
     super.key,
@@ -18,6 +20,7 @@ class AddHostelAttendancePage extends StatefulWidget {
     this.floor,
     this.room,
     this.month,
+    this.date,
   });
 
   @override
@@ -54,6 +57,9 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
   @override
   void initState() {
     super.initState();
+    if (widget.date != null) {
+      selectedDate = widget.date!;
+    }
     // Initialize all students as 'Present' by default
     for (int i = 0; i < students.length; i++) {
       attendanceStatus[i] = 'Present';
@@ -141,67 +147,15 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
     );
     final String hostelId = hostelObj?.id.toString() ?? '1';
 
-    // 3. Find Floor ID - we don't have a direct Floor ID lookup map easily accessible
-    // without iterating members or having a floor model.
-    // BUT the API for "store" might accept the raw value if it's just a number,
-    // OR we need to find the ID.
-    // Looking at `HostelController.loadFloorsAndRooms`, it extracts floor names.
-    // And `ApiCollection.storeHostelAttendance` describes params as `hostel`, `floor`, `room`.
-    // If the backend expects IDs for floor/room, we have a problem because we only have names here.
-    // However, in `HostelController.loadFloorsAndRooms`, we loaded `members`.
-    // `members` contains `floor` and `room` fields which are likely Names (e.g. "1-FLOOR").
-    // Let's assume for now that passing the Name is what's intended OR
-    // strict IDs are required. The Screenshot shows `floor=2`, `room=7`. These are definitely IDs.
-
-    // We need to find Floor ID and Room ID.
-    // We can try to find them from `hostelCtrl.members` if it has ID fields?
-    // checking `members` data structure... `getHostelMembers` returns a list of maps.
-    // We didn't see the full structure in `view_file` of controller, but usually it has `floor_id`, `room_id`?
-    // If not, we might be stuck sending names or need to fetch structure.
-
-    // HACK: Filter `hostelCtrl.members` to find a matching floor/room name and get its ID if available.
-    String floorId = widget.floor ?? '0';
-    String roomId = widget.room ?? '0';
-
-    if (hostelCtrl.members.isNotEmpty) {
-      final member = hostelCtrl.members.firstWhereOrNull(
-        (m) =>
-            m['floor']?.toString() == widget.floor &&
-            m['room']?.toString() == widget.room,
-      );
-      if (member != null) {
-        // If the API response contains explicit IDs
-        if (member.containsKey('floor_id'))
-          floorId = member['floor_id'].toString();
-        if (member.containsKey('room_id'))
-          roomId = member['room_id'].toString();
-        // If not, we might have to rely on the names being numbers or something,
-        // but `widget.floor` is "1-FLOOR".
-        // Let's try to parse if it contains a number, or stick with what we have.
-        // Screenshot shows `floor_id=2`...
-      }
-    }
-
-    // If we still don't have IDs and we are sending names like "1-FLOOR", it might fail.
-    // But let's proceed with finding what we can.
-    // For now, I will assume the `HostelAttendanceStatusPage` (which likely navigates here)
-    // passed names.
-    // Wait, the user said "Add Hostel Attendance Page" and "Hostel Attendance Mark Page".
-    // If I look at the `HostelAttendanceMarkPage` (screenshot 3), it has `Mark Attendance - 101`.
-    // The previous page `HostelAttendanceStatusPage` (screenshot 1) shows `Room 101`.
-
-    // Let's check `HostelController.loadFloorsAndRooms` again.
-    // It calls `ApiService.getHostelMembers`.
-    // `ApiCollection.hostelMembersList` takes type/param.
-
-    // If I cannot guarantee IDs, I will send what I have, but try to find IDs from `members`.
-    // I'll add a helper to look up IDs from the member list which contains everything.
+    // 3. Find Floor ID and Room ID
+    final floorId = hostelCtrl.getFloorIdFromName(widget.floor ?? '');
+    final roomId = hostelCtrl.getRoomIdFromName(widget.room ?? '');
 
     final success = await hostelCtrl.submitAttendance(
       branchId: branchId,
       hostel: hostelId, // Building ID
-      floor: floorId, // Sending Name if ID not found, but likely need ID
-      room: roomId, // Sending Name if ID not found
+      floor: floorId,
+      room: roomId,
       shift: '1',
       sidList: sids,
       statusList: statuses,
@@ -214,6 +168,18 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
+
+      // Refresh summary to reflect new numbers and navigate back
+      await hostelCtrl.loadRoomAttendanceSummary(
+        branch: branchId,
+        date: selectedDate,
+        hostel: hostelId,
+        floor: floorId,
+        room: roomId,
+      );
+
+      // Wait a bit for snackbar to be seen or just go back
+      Get.back();
     }
   }
 
@@ -301,14 +267,7 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
                           ),
                         ),
                         icon: hostelCtrl.isLoading.value
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.black,
-                                ),
-                              )
+                            ? null
                             : const Icon(Icons.search),
                         label: Text(
                           hostelCtrl.isLoading.value
@@ -329,6 +288,12 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
 
                 Expanded(
                   child: Obx(() {
+                    if (hostelCtrl.isLoading.value) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: SkeletonList(itemCount: 5),
+                      );
+                    }
                     if (hostelCtrl.roomStudents.isEmpty) {
                       return Center(
                         child: Text(
@@ -568,13 +533,23 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
                             underline: const SizedBox(),
                             dropdownColor: isDark ? dark2 : Colors.white,
                             style: TextStyle(
-                              color: isDark ? Colors.white : Colors.black,
+                              color: _getStatusColor(
+                                attendanceStatus[student.sid] ?? 'Present',
+                                isDark,
+                              ),
                               fontSize: 12,
+                              fontWeight: FontWeight.bold,
                             ),
                             items: statusOptions.map((status) {
                               return DropdownMenuItem(
                                 value: status,
-                                child: Text(status),
+                                child: Text(
+                                  status,
+                                  style: TextStyle(
+                                    color: _getStatusColor(status, isDark),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               );
                             }).toList(),
                             onChanged: (value) {
@@ -604,9 +579,9 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
                           child: Text(
                             student.studentName,
                             style: const TextStyle(
-                              color: Colors.blue,
-                              fontSize: 12,
-                              decoration: TextDecoration.underline,
+                              color: Color(0xFFE040FB), // Vibrant pink/purple
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -629,5 +604,26 @@ class _AddHostelAttendancePageState extends State<AddHostelAttendancePage> {
         ),
       ),
     );
+  }
+
+  // ---------------- HELPER METHODS ----------------
+
+  Color _getStatusColor(String status, bool isDark) {
+    switch (status) {
+      case 'Present':
+        return Colors.greenAccent;
+      case 'Missing':
+        return Colors.redAccent;
+      case 'Outing':
+        return Colors.orangeAccent;
+      case 'Home Pass':
+        return Colors.lightBlueAccent;
+      case 'Self Outing':
+        return Colors.cyanAccent;
+      case 'Self Home':
+        return Colors.pinkAccent;
+      default:
+        return isDark ? Colors.white : Colors.black;
+    }
   }
 }

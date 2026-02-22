@@ -101,6 +101,10 @@ class ProfileController extends GetxController {
         final p = profile.value!;
         final token = AppStorage.getToken();
         if (token != null) {
+          final loginType = AppStorage.getLoginType();
+          final role = AppStorage.getUserRole();
+          final permissions = AppStorage.getPermissions();
+
           AppStorage.saveUserSession({
             'user_login': p.userLogin.isNotEmpty
                 ? p.userLogin
@@ -110,6 +114,9 @@ class ProfileController extends GetxController {
             'avatar': p.avatar,
             'email': p.email,
             'mobile': p.mobile,
+            'login_type': loginType,
+            'role': role,
+            'permissions': permissions,
           }, token);
         }
       }

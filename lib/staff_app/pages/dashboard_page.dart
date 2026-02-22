@@ -4,8 +4,10 @@ import 'package:student_app/staff_app/controllers/auth_controller.dart';
 import 'package:student_app/staff_app/controllers/theme_controller.dart';
 import 'package:student_app/staff_app/controllers/search_controller.dart'
     as search;
+import 'package:student_app/staff_app/controllers/profile_controller.dart';
 import 'package:student_app/staff_app/pages/profile_page.dart';
 import 'package:student_app/staff_app/pages/student_details_page.dart';
+import 'package:student_app/staff_app/widgets/skeleton.dart';
 
 class HomeDashboardPage extends StatefulWidget {
   const HomeDashboardPage({super.key});
@@ -20,6 +22,9 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
   bool showSearchDropdown = false;
   String selectedYear = "2025-2026";
   final searchCtrl = Get.put(search.SearchController());
+  final profileCtrl = Get.isRegistered<ProfileController>()
+      ? Get.find<ProfileController>()
+      : Get.put(ProfileController());
   final TextEditingController searchTextCtrl = TextEditingController();
 
   final List<String> years = [
@@ -220,11 +225,23 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
           ],
           child: Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: Theme.of(context).cardColor,
-              child: Icon(Icons.person),
-            ),
+            child: Obx(() {
+              final p = profileCtrl.profile.value;
+              final avatar = p?.avatar ?? "";
+              final bool hasValidAvatar =
+                  avatar.isNotEmpty && avatar != "avatar.png";
+
+              return CircleAvatar(
+                radius: 18,
+                backgroundColor: Theme.of(context).cardColor,
+                backgroundImage: hasValidAvatar
+                    ? NetworkImage(
+                        "https://dev.srisaraswathigroups.in/uploads/$avatar",
+                      )
+                    : null,
+                child: !hasValidAvatar ? const Icon(Icons.person) : null,
+              );
+            }),
           ),
         ),
       ],
@@ -482,8 +499,8 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                   Obx(() {
                     if (searchCtrl.isLoading.value) {
                       return const Padding(
-                        padding: EdgeInsets.all(20),
-                        child: CircularProgressIndicator(),
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: SkeletonList(itemCount: 3),
                       );
                     }
 
@@ -609,7 +626,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
   void toggleGridMenu() {
     if (isGridMenuOpen) {
       Navigator.of(context).pop();
-      setState(() => isGridMenuOpen = false);
+      if (mounted) setState(() => isGridMenuOpen = false);
     } else {
       openGridMenu();
     }
@@ -618,7 +635,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
   void _closeGridMenu() {
     if (isGridMenuOpen) {
       Navigator.of(context).pop();
-      setState(() => isGridMenuOpen = false);
+      if (mounted) setState(() => isGridMenuOpen = false);
     }
   }
 
@@ -671,26 +688,37 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                           color: const Color(0xFF2196F3),
                           icon: Icons.groups_rounded,
                           title: "Class Attendance",
-                          onTap: () => Get.toNamed('/classAttendance'),
-                          // ✅ correct route
+                          onTap: () {
+                            _closeGridMenu();
+                            Get.toNamed('/classAttendance');
+                          },
                         ),
                         _menuCard(
                           color: const Color(0xFFFFC107),
                           icon: Icons.fact_check_rounded,
                           title: "Hostel Attendance",
-                          onTap: () => Get.toNamed('/hostelAttendanceFilter'),
+                          onTap: () {
+                            _closeGridMenu();
+                            Get.toNamed('/hostelAttendanceFilter');
+                          },
                         ),
                         _menuCard(
                           color: const Color(0xFF4CAF50),
                           icon: Icons.hiking,
                           title: "Issue Outing",
-                          onTap: () => Get.toNamed('/outingList'),
+                          onTap: () {
+                            _closeGridMenu();
+                            Get.toNamed('/outingList');
+                          },
                         ),
                         _menuCard(
                           color: const Color(0xFFE53935),
                           icon: Icons.verified_user_rounded,
                           title: "Verify Outing",
-                          onTap: () => Get.toNamed('/outingPending'),
+                          onTap: () {
+                            _closeGridMenu();
+                            Get.toNamed('/outingPending');
+                          },
                         ),
                       ],
                     ),
@@ -711,7 +739,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
         );
       },
     ).then((_) {
-      setState(() => isGridMenuOpen = false);
+      if (mounted) setState(() => isGridMenuOpen = false);
     });
   }
 
@@ -779,14 +807,51 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                         colors: [Color(0xFFE8ECF4), Color(0xFFF5F6FA)],
                       ),
               ),
-              child: Center(
-                child: Text(
-                  "Menu",
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
+              child: Obx(() {
+                final p = profileCtrl.profile.value;
+                if (p == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final avatar = p.avatar;
+                final bool hasValidAvatar =
+                    avatar.isNotEmpty && avatar != "avatar.png";
+
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 35,
+                      backgroundColor: Theme.of(context).cardColor,
+                      backgroundImage: hasValidAvatar
+                          ? NetworkImage(
+                              "https://dev.srisaraswathigroups.in/uploads/$avatar",
+                            )
+                          : null,
+                      child: !hasValidAvatar
+                          ? const Icon(Icons.person, size: 40)
+                          : null,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      p.name,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      p.email,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                );
+              }),
             ),
 
             _drawerItem(

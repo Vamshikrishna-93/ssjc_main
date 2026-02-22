@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../controllers/staff_controller.dart';
 import '../model/staff_model.dart';
 import '../widgets/search_field.dart';
+import '../widgets/skeleton.dart';
 
 class StaffListPage extends StatefulWidget {
   const StaffListPage({super.key});
@@ -34,9 +35,9 @@ class _StaffListPageState extends State<StaffListPage> {
   }
 
   void _addStaff() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Add Staff (Demo Action)")),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Add Staff (Demo Action)")));
   }
 
   @override
@@ -90,8 +91,8 @@ class _StaffListPageState extends State<StaffListPage> {
           Column(
             children: [
               const SizedBox(
-                  height:
-                      95), // ================= DEPARTMENT DROPDOWN =================
+                height: 95,
+              ), // ================= DEPARTMENT DROPDOWN =================
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Obx(() {
@@ -161,8 +162,9 @@ class _StaffListPageState extends State<StaffListPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Container(
                   decoration: BoxDecoration(
-                    color:
-                        isDark ? Colors.white.withOpacity(0.12) : Colors.white,
+                    color: isDark
+                        ? Colors.white.withOpacity(0.12)
+                        : Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: isDark
@@ -200,18 +202,21 @@ class _StaffListPageState extends State<StaffListPage> {
                   }
 
                   if (controller.isLoading.value) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: SkeletonList(itemCount: 5),
                     );
                   }
 
                   final query = _query.toLowerCase();
-                  final List<StaffModel> filtered =
-                      controller.filteredDesignations.where((s) {
-                    return s.designation.toLowerCase().contains(query) ||
-                        s.branchName.toLowerCase().contains(query) ||
-                        s.id.toString().contains(query);
-                  }).toList();
+                  final List<StaffModel> filtered = controller
+                      .filteredDesignations
+                      .where((s) {
+                        return s.designation.toLowerCase().contains(query) ||
+                            s.branchName.toLowerCase().contains(query) ||
+                            s.id.toString().contains(query);
+                      })
+                      .toList();
 
                   if (filtered.isEmpty) {
                     return const Center(
@@ -275,8 +280,9 @@ class _StaffListPageState extends State<StaffListPage> {
                                     style: TextStyle(
                                       fontSize: 17,
                                       fontWeight: FontWeight.bold,
-                                      color:
-                                          isDark ? Colors.white : Colors.black,
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black,
                                     ),
                                   ),
                                   const SizedBox(height: 6),
@@ -353,8 +359,9 @@ class _StaffListPageState extends State<StaffListPage> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      isDark ? neon : Theme.of(context).primaryColor,
+                  backgroundColor: isDark
+                      ? neon
+                      : Theme.of(context).primaryColor,
                   padding: const EdgeInsets.symmetric(
                     vertical: 14,
                     horizontal: 22,

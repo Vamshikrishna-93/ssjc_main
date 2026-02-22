@@ -35,6 +35,17 @@ class ApiCollection {
   }
 
   static const String pendingOutingList = "/getpendingoutinglist";
+  static String outingDetails(int id) => "/getoutinglist/$id";
+
+  static String outingSearch(String identifier) =>
+      "/outing-search/${Uri.encodeComponent(identifier)}";
+
+  static const String addOutingRemarks = "/add-outing-remarks";
+  static const String updateOutingLetter = "/stduent_outing_letter_update";
+  static const String updateOutingPhoto = "/stduent_outing_photo_update";
+  static const String storeOuting = "/storeouting";
+  static String inreportOuting(int id) => "/inreport_outing/$id";
+  static String approveOuting(int id) => "/approve_outing/$id";
 
   // ================= HR =================
   static const String departmentsList = "/departmentslist";
@@ -50,6 +61,58 @@ class ApiCollection {
   static String getHostelsByBranch(int branchId) =>
       "/gethostelsbybranch/$branchId";
   static const String saveHostel = "/savehostel";
+
+  // ================= CLASS STUDENTS LIST =================
+  static String getStudentsAttendanceList({
+    required int shiftId,
+    required String date,
+    required int batchId,
+  }) {
+    return "/get_students_attendance_list"
+        "?shift=$shiftId"
+        "&date=$date"
+        "&batchid=$batchId";
+  }
+
+  static String getClassStudents({
+    required int branchId,
+    required int groupId,
+    required int courseId,
+    required int batchId,
+    required int shiftId,
+  }) {
+    return "/monthlyattendanceList"
+        "?branchid=$branchId"
+        "&groupid=$groupId"
+        "&courseid=$courseId"
+        "&batchid=$batchId"
+        "&month=" // empty month to just get students
+        "&shift=$shiftId";
+  }
+
+  // ================= STORE CLASS ATTENDANCE =================
+  /// NOTE: Backend endpoint has a typo "store_student_attendace"
+  static String storeStudentAttendance({
+    required int branchId,
+    required int groupId,
+    required int courseId,
+    required int batchId,
+    required int shiftId,
+    required List<int> sidList,
+    required List<String> statusList,
+  }) {
+    final sids = sidList.map((e) => "sid[]=$e").join("&");
+    final status = statusList.map((e) => "at_status[]=$e").join("&");
+
+    return "/store_student_attendace"
+        "?branch_id=$branchId"
+        "&group_id=$groupId"
+        "&course_id=$courseId"
+        "&batch_id=$batchId"
+        "&shift=$shiftId"
+        "&$sids"
+        "&$status";
+  }
 
   // ================= MONTHLY ATTENDANCE (ACADEMIC) =================
   static String monthlyAttendance({
@@ -125,23 +188,41 @@ class ApiCollection {
     required int branchId,
     required int shiftId,
   }) {
-    return "/getverify_attendance?branch_id=$branchId&shift=$shiftId";
+    return "/verify_attendance?branch=$branchId&shift=$shiftId";
   }
 
-  /// 4️⃣ Rooms attendance summary (dashboard)
-  static String roomsAttendance({
-    required String branch,
-    required String date,
-    required String hostel,
-    required String floor,
-    required String room,
+  static String verifyStoreAttendance({
+    required List<int> branchIds,
+    required List<int> groupIds,
+    required List<int> courseIds,
+    required List<int> batchIds,
+    required List<int> totalStrengths,
+    required List<int> totalPresents,
+    required List<int> totalAbsents,
   }) {
-    return "/rooms-attendance"
-        "?branch=$branch"
-        "&date=$date"
-        "&hostel=$hostel"
-        "&floor=$floor"
-        "&room=$room";
+    final bIds = branchIds.map((e) => "branch_id[]=$e").join("&");
+    final gIds = groupIds.map((e) => "group_id[]=$e").join("&");
+    final cIds = courseIds.map((e) => "course_id[]=$e").join("&");
+    final batIds = batchIds.map((e) => "batch_id[]=$e").join("&");
+    final strengths = totalStrengths
+        .map((e) => "total_strength[]=$e")
+        .join("&");
+    final presents = totalPresents.map((e) => "total_present[]=$e").join("&");
+    final absents = totalAbsents.map((e) => "total_absent[]=$e").join("&");
+
+    return "/verify_store_attendance"
+        "?$bIds"
+        "&$gIds"
+        "&$cIds"
+        "&$batIds"
+        "&$strengths"
+        "&$presents"
+        "&$absents";
+  }
+
+  /// 4️⃣ Rooms attendance summary (POST)
+  static String roomsAttendance() {
+    return "/rooms-attendance";
   }
 
   static const String roomsAttendanceEndpoint = "/rooms-attendance";

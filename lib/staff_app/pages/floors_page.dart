@@ -6,6 +6,7 @@ import '../controllers/staff_controller.dart';
 import '../controllers/floor_controller.dart';
 import '../model/floor_model.dart';
 import '../widgets/search_field.dart';
+import '../widgets/skeleton.dart';
 
 class FloorsManagementPage extends StatefulWidget {
   const FloorsManagementPage({super.key});
@@ -181,8 +182,9 @@ class _FloorsManagementPageState extends State<FloorsManagementPage> {
             Expanded(
               child: Obx(() {
                 if (_floorController.isLoading.value) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: neon),
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: SkeletonList(itemCount: 5),
                   );
                 }
 

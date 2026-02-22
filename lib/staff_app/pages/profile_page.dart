@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:student_app/staff_app/controllers/profile_controller.dart';
+import '../widgets/skeleton.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -115,9 +116,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   Obx(() {
                     if (controller.isLoading.value ||
                         controller.profile.value == null) {
-                      return const CircleAvatar(
-                        radius: 36,
-                        child: Icon(Icons.person),
+                      return const SkeletonLoader(
+                        width: 72,
+                        height: 72,
+                        borderRadius: 36,
                       );
                     }
 
@@ -150,7 +152,16 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: Obx(() {
                       if (controller.isLoading.value ||
                           controller.profile.value == null) {
-                        return const SizedBox(); // ✅ SAFE PLACEHOLDER
+                        return const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SkeletonLoader(width: 150, height: 16),
+                            SizedBox(height: 8),
+                            SkeletonLoader(width: 200, height: 12),
+                            SizedBox(height: 4),
+                            SkeletonLoader(width: 180, height: 12),
+                          ],
+                        );
                       }
 
                       final p = controller.profile.value!; // ✅ NOW SAFE
@@ -167,7 +178,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           _headerText("Email: ${p.email}", isDark),
                           _headerText("Phone Number: ${p.mobile}", isDark),
-                          _headerText("User ID: ${p.userLogin}", isDark),
+                          _headerText("User ID : ${p.userLogin}", isDark),
                         ],
                       );
                     }),
@@ -298,7 +309,10 @@ class ProfileTab extends StatelessWidget {
     return Obx(() {
       // ✅ BLOCK UI UNTIL DATA EXISTS
       if (controller.isLoading.value || controller.profile.value == null) {
-        return const Center(child: CircularProgressIndicator());
+        return const Padding(
+          padding: EdgeInsets.all(16),
+          child: SkeletonList(itemCount: 5),
+        );
       }
 
       // ✅ SAFE NOW
@@ -400,9 +414,9 @@ class ProfileTab extends StatelessWidget {
               children: [
                 _infoCard("Academic Year", "N/A"),
                 _infoCard("Remarks", "N/A"),
-                _infoCard("Status", "Active"),
-                _infoCard("Role", "Principal"),
-                _infoCard("Employee ID", "666700"),
+                _infoCard("Status", p.status == 1 ? "Active" : "Inactive"),
+                _infoCard("Role", p.roleId == 1 ? "Principal" : "Staff"),
+                _infoCard("Employee ID", p.userLogin),
               ],
             ),
           ],

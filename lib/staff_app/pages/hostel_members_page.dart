@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:student_app/staff_app/pages/assign_students_page.dart';
 import '../widgets/search_field.dart';
+import '../widgets/skeleton.dart';
 import '../api/api_service.dart';
 
 class HostelMembersPage extends StatefulWidget {
@@ -255,9 +256,7 @@ class _HostelMembersPageState extends State<HostelMembersPage> {
                     ),
                     const SizedBox(height: 10),
                     if (_loading)
-                      const Expanded(
-                        child: Center(child: CircularProgressIndicator()),
-                      )
+                      const Expanded(child: SkeletonList(itemCount: 5))
                     else if (_error != null)
                       Expanded(child: Center(child: Text(_error!)))
                     else

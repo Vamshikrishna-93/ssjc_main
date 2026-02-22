@@ -37,9 +37,23 @@ class AuthController extends GetxController {
         AppStorage.saveUserSession({
           'user_login': username,
           'userid': response['userid'],
+          'login_type': response['login_type'],
+          'role': response['role'],
+          'permissions': response['permissions'],
           // We don't have name/avatar yet, ProfileController will fetch them later
-          // Ideally we update this after fetching profile, but for now we save what we have
         }, response["access_token"]);
+
+        // 🔥 FETCH PROFILE IMMEDIATELY AFTER LOGIN
+        // This ensures Dashboard/Drawer have user data right away
+        final profileController = Get.isRegistered<ProfileController>()
+            ? Get.find<ProfileController>()
+            : Get.put(ProfileController());
+
+        // Use await to ensure profile is fetched before moving to dashboard
+        // If it fails, we still go to dashboard but user info might be missing
+        profileController.fetchProfile().catchError((e) {
+          debugPrint("PROFILE FETCH FAILED AFTER LOGIN: $e");
+        });
 
         // 🚀 GO TO DASHBOARD
         Get.offAllNamed('/dashboard');

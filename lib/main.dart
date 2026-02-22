@@ -160,6 +160,7 @@ class SsJcApp extends StatelessWidget {
                 floor: args?['floor'],
                 room: args?['room'],
                 month: args?['month'],
+                date: args?['date'],
               );
             },
           ),

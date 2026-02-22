@@ -2,17 +2,23 @@ class AttendanceResponse {
   final bool success;
   final List<StudentAttendance> indexdata;
 
-  AttendanceResponse({
-    required this.success,
-    required this.indexdata,
-  });
+  AttendanceResponse({required this.success, required this.indexdata});
 
   factory AttendanceResponse.fromJson(Map<String, dynamic> json) {
+    final successValue = json['success'];
+    final bool isSuccess =
+        successValue == true || successValue == "true" || successValue == 1;
+
+    final List<dynamic>? listData =
+        (json['indexdata'] ?? json['attendanceData']) as List<dynamic>?;
+
     return AttendanceResponse(
-      success: json['success'] ?? false,
-      indexdata: (json['indexdata'] as List<dynamic>?)
+      success: isSuccess,
+      indexdata:
+          listData
               ?.map(
-                  (e) => StudentAttendance.fromJson(e as Map<String, dynamic>))
+                (e) => StudentAttendance.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );
@@ -27,6 +33,7 @@ class AttendanceResponse {
 }
 
 class StudentAttendance {
+  final int sid;
   final String sfname;
   final String slname;
   final String admno;
@@ -63,6 +70,7 @@ class StudentAttendance {
   final String threeone;
 
   StudentAttendance({
+    required this.sid,
     required this.sfname,
     required this.slname,
     required this.admno,
@@ -100,10 +108,34 @@ class StudentAttendance {
   });
 
   factory StudentAttendance.fromJson(Map<String, dynamic> json) {
+    final rawId =
+        json['sid'] ??
+        json['id'] ??
+        json['stuid'] ??
+        json['stu_id'] ??
+        json['student_id'] ??
+        json['ID'] ??
+        json['SID'] ??
+        json['st_id'] ??
+        '0';
+
+    final parsedSid = int.tryParse(rawId.toString()) ?? 0;
+
+    // Robust Name Parsing
+    final firstName =
+        (json['sfname'] ??
+                json['student_name'] ??
+                json['full_name'] ??
+                json['name'] ??
+                '')
+            .toString();
+    final lastName = (json['slname'] ?? '').toString();
+
     return StudentAttendance(
-      sfname: json['sfname'] ?? '',
-      slname: json['slname'] ?? '',
-      admno: json['admno'] ?? '',
+      sid: parsedSid,
+      sfname: firstName,
+      slname: lastName,
+      admno: (json['admno'] ?? '').toString(),
       one: json['one'] ?? '',
       two: json['two'] ?? '',
       three: json['three'] ?? '',
@@ -140,6 +172,7 @@ class StudentAttendance {
 
   Map<String, dynamic> toJson() {
     return {
+      'sid': sid,
       'sfname': sfname,
       'slname': slname,
       'admno': admno,
